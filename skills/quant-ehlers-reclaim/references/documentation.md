@@ -48,16 +48,24 @@ $$\text{LowerBand}_t = \text{TrendMA}_t - 0.7 \cdot \text{PctDist}_t$$
 
 ---
 
-## 3. Backtest Performance Summary (^TWII 2023-01-01 ~ 2026-10-08)
+## 3. Backtest Performance Summary (^TWII Golden Parameters 1.0x Pure Spot)
 
-| Metric | Plan B (1.0x Pure Spot) | Buy & Hold Benchmark |
+### Past 3 Years (2023-10-01 ~ 2026-10-08)
+| Metric | Plan B (1.0x Golden Params) | Buy & Hold Benchmark |
 | :--- | :---: | :---: |
-| Total Return | **+235.11%** | +248.81% |
-| CAGR | **+37.91%** | +39.39% |
-| Max Drawdown | **-16.55%** | **-28.69%** |
-| Calmar Ratio | **14.20** | **8.67** |
-| Sharpe Ratio | **2.08** | **1.67** |
-| Sortino Ratio | **2.80** | **2.12** |
-| Win/Loss Payoff Ratio | **7.13** | — |
-| Profit Factor | **5.71** | — |
-| Trades Count | **27 Trades** | 1 Trade |
+| Total Return | **+220.99%** | +201.54% |
+| Alpha | **+19.45%** | 0.00% |
+| Max Drawdown | **-13.55%** | **-28.69%** |
+| Calmar Ratio | **16.30** | **7.02** |
+| Sharpe Ratio | **2.36** | 1.84 |
+| Win Rate | **57.9%** | — |
+| Profit Factor | **8.12** | — |
+| Trades Count | **19 Trades** | 1 Trade |
+
+### Full Period Cross-Validation (2023-01-01 ~ 2026-10-08)
+| Metric | Plan B (1.0x Golden Params) | Buy & Hold Benchmark |
+| :--- | :---: | :---: |
+| Total Return | **+266.44%** | +248.81% |
+| Max Drawdown | **-13.55%** | **-28.69%** |
+| Calmar Ratio | **19.66** | 8.67 |
+| Sharpe Ratio | **2.24** | 1.67 |

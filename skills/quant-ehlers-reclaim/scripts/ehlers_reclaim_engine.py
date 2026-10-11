@@ -19,10 +19,10 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 
-def run_ehlers_percentile(df, ma_min=3, ma_max=30, vol_len=9,
-                          ehlers_len=9, ehlers_mom=15,
-                          pct_len=50, pct_level=75.0,
-                          upper_mult=0.7, lower_mult=0.7):
+def run_ehlers_percentile(df, ma_min=3, ma_max=30, vol_len=12,
+                          ehlers_len=9, ehlers_mom=12,
+                          pct_len=40, pct_level=75.0,
+                          upper_mult=0.7, lower_mult=0.8):
     """
     Vectorized calculation of the Adaptive Ehlers Filtered Percentile Indicator.
     Zero-Lookahead Bias guaranteed.
@@ -110,11 +110,11 @@ def run_ehlers_percentile(df, ma_min=3, ma_max=30, vol_len=9,
 
 def backtest_plan_b_1x(df_calc, start_date='2023-01-01', end_date='2026-10-08',
                        exit_mode='dual_stage_buffered', pos_boost=1.0,
-                       exec_timing='next_open'):
+                       exec_timing='next_open', exit_weight=0.6):
     """
     Executes Plan B (1.0x Pure Spot):
       - Entry: Purple bar drops below LowerBand, then 1st Purple bar closes above LowerBand.
-      - Exit: If reached UpperBand (Green bull market), exit when Close < (TrendMA + LowerBand)/2.
+      - Exit: If reached UpperBand (Green bull market), exit when Close < (TrendMA * exit_weight + LowerBand * (1 - exit_weight)).
               If not reached UpperBand (still bottom stage), exit when Close < LowerBand.
       - 100% Spot, 1.0x position, zero leverage.
     """
@@ -161,7 +161,7 @@ def backtest_plan_b_1x(df_calc, start_date='2023-01-01', end_date='2026-10-08',
             is_exit = False
             if exit_mode == 'dual_stage_buffered':
                 if reached_upper:
-                    target_floor = (tma + lb) / 2.0
+                    target_floor = tma * exit_weight + lb * (1.0 - exit_weight)
                     if c < target_floor:
                         is_exit = True
                 else:

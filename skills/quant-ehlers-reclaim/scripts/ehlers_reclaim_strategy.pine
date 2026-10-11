@@ -7,13 +7,14 @@ strategy("Adaptive Ehlers Percentile Reclaim Strategy (Plan B 1.0x)", overlay=tr
 string stratMode      = input.string("Plan B (1.0x Pure Spot)", "Strategy Mode", options=["Plan B (1.0x Pure Spot)", "Plan B (1.20x Bull Boost)", "Plan A (1.5% Buffer)"], group="Strategy Mode")
 int   maMin           = input.int(3, "Min Adaptive MA Length", minval=1, group="Adaptive Moving Average")
 int   maMax           = input.int(30, "Max Adaptive MA Length", minval=5, group="Adaptive Moving Average")
-int   volLen          = input.int(9, "Volatility StDev Length", minval=2, group="Adaptive Moving Average")
+int   volLen          = input.int(12, "Volatility StDev Length", minval=2, group="Adaptive Moving Average")
 int   ehlersLen       = input.int(9, "Ehlers Filter Length", minval=2, group="Ehlers Distance-Weighted Filter")
-int   ehlersMom       = input.int(15, "Ehlers Momentum Lookback", minval=1, group="Ehlers Distance-Weighted Filter")
-int   pctLen          = input.int(50, "Percentile Channel Length", minval=5, group="Percentile Bands")
+int   ehlersMom       = input.int(12, "Ehlers Momentum Lookback", minval=1, group="Ehlers Distance-Weighted Filter")
+int   pctLen          = input.int(40, "Percentile Channel Length", minval=5, group="Percentile Bands")
 float pctLevel        = input.float(75.0, "Percentile Rank Level", minval=50.0, maxval=99.0, group="Percentile Bands")
 float upperMult       = input.float(0.7, "Upper Band Multiplier", step=0.1, group="Percentile Bands")
-float lowerMult       = input.float(0.7, "Lower Band Multiplier", step=0.1, group="Percentile Bands")
+float lowerMult       = input.float(0.8, "Lower Band Multiplier", step=0.1, group="Percentile Bands")
+float exitWeight      = input.float(0.6, "Plan B Exit Floor TrendMA Weight", step=0.05, group="Plan B Settings")
 float planABufferPct  = input.float(1.5, "Plan A Buffer %", step=0.1, group="Plan A Settings") / 100.0
 
 // ==========================================
@@ -54,7 +55,7 @@ color barCol = SQ == 1 ? color.rgb(57, 255, 20) : color.rgb(138, 43, 226)
 barcolor(barCol)
 
 // Dynamic exit trailing line for Plan B
-float midLowerBand = (trendMA + lowerBand) / 2.0
+float midLowerBand = trendMA * exitWeight + lowerBand * (1.0 - exitWeight)
 
 // Plots
 plot(trendMA, "Ehlers TrendMA", color=color.orange, linewidth=2)
