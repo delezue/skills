@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.html
+*.png
+.DS_Store
+Thumbs.db
