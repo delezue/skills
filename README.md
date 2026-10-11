@@ -4,7 +4,7 @@
 
 ## 📦 已收錄技能清單
 
-### 1. [`skill/quant-iwy-lead`](skill/quant-iwy-lead/)
+### 1. [`skills/quant-iwy-lead`](skills/quant-iwy-lead/)
 - **名稱**：IWY 美股巨頭領先指標量化系統 (ZLEMA-BBI 13/21/34/55)
 - **標的**：^TWII (台股加權指數) / 台股正二 (00685L) / 美股 IWY
 - **核心邏輯**：利用美股凌晨 04:00 收盤確定訊號與台股上午 09:00 開盤之間的 5 小時時間差，實現嚴格 100% 因果時序、零未來函數之 Open-to-Open 實盤操作。
@@ -15,7 +15,7 @@
   - 盈虧比：**3.94**
   - 最大回撤：**-7.49%** (大盤最大回撤 -28.69%)
 
-### 2. [`skill/quant-ehlers-reclaim`](skill/quant-ehlers-reclaim/)
+### 2. [`skills/quant-ehlers-reclaim`](skills/quant-ehlers-reclaim/)
 - **名稱**：Adaptive Ehlers Percentile Reclaim (方案 B 1.0x 純現貨階梯防守/停利量化系統)
 - **標的**：^TWII (台股加權指數) / 0050 / 美股科技 (QQQ, SMH) / 權值股 (TSM)
 - **核心技術**：波動率自適應 EMA + 非線性 Ehlers 動量距離濾波 (TrendMA) + 75% Nearest-Rank 動態通道 + 破底翻站回下軌進場 + 階梯式中下軌 (TrendMA + LowerBand)/2 動態停利。

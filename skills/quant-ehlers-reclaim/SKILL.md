@@ -61,13 +61,13 @@ Use this skill whenever the user asks for:
 
 ```bash
 # Analyze ^TWII with Plan B (1.0x Pure Spot)
-python skill/quant-ehlers-reclaim/scripts/ehlers_reclaim_engine.py --symbol ^TWII --start 2023-01-01 --end 2026-10-08
+python skills/quant-ehlers-reclaim/scripts/ehlers_reclaim_engine.py --symbol ^TWII --start 2023-01-01 --end 2026-10-08
 
 # Analyze 0050 ETF or Taiwan Semiconductor
-python skill/quant-ehlers-reclaim/scripts/ehlers_reclaim_engine.py --symbol 0050.TW --start 2023-01-01 --end 2026-10-08
+python skills/quant-ehlers-reclaim/scripts/ehlers_reclaim_engine.py --symbol 0050.TW --start 2023-01-01 --end 2026-10-08
 
 # Analyze US Tech (QQQ or SMH)
-python skill/quant-ehlers-reclaim/scripts/ehlers_reclaim_engine.py --symbol QQQ --start 2023-01-01 --end 2026-10-08
+python skills/quant-ehlers-reclaim/scripts/ehlers_reclaim_engine.py --symbol QQQ --start 2023-01-01 --end 2026-10-08
 ```
 
 ### CLI Arguments:
