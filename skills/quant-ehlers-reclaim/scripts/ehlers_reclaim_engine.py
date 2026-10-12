@@ -257,7 +257,7 @@ def backtest_plan_b_1x(df_calc, start_date='2023-01-01', end_date='2026-10-08',
     
     tot_strat = (cum_strat[-1] - 1.0) * 100.0
     tot_mkt = (cum_mkt[-1] - 1.0) * 100.0
-    alpha = tot_strat - tot_mkt
+    excess_ret = tot_strat - tot_mkt  # simple total-return difference (not alpha)
     
     cummax_s = np.maximum.accumulate(cum_strat)
     dd_s = (cum_strat - cummax_s) / cummax_s * 100.0
@@ -283,12 +283,30 @@ def backtest_plan_b_1x(df_calc, start_date='2023-01-01', end_date='2026-10-08',
     sharpe_s = (np.mean(strat_ret) / (np.std(strat_ret) + 1e-8)) * np.sqrt(252)
     downside_s = strat_ret[strat_ret < 0]
     sortino_s = (np.mean(strat_ret) * 252) / (np.std(downside_s) * np.sqrt(252)) if len(downside_s) > 0 else 0
-    calmar_s = tot_strat / abs(max_dd_s)
+    # Calmar = CAGR / |MaxDD| (industry standard; total return / MDD inflates with period length)
+    calmar_s = cagr_s / abs(max_dd_s) if max_dd_s != 0 else 0.0
+    calmar_m = cagr_m / abs(max_dd_m) if max_dd_m != 0 else 0.0
+
+    # Jensen's alpha: OLS of daily strategy returns on daily market returns (rf = 0),
+    # intercept annualised x252. beta = market exposure, alpha_t = t-stat of the intercept.
+    n = min(len(strat_ret), len(mkt_ret))
+    y, x = strat_ret[-n:], mkt_ret[-n:]
+    X = np.column_stack([np.ones(n), x])
+    coef, *_ = np.linalg.lstsq(X, y, rcond=None)
+    resid = y - X @ coef
+    sigma2 = resid @ resid / max(n - 2, 1)
+    se = np.sqrt(np.diag(sigma2 * np.linalg.inv(X.T @ X)))
+    alpha = coef[0] * 252 * 100.0
+    beta = coef[1]
+    alpha_t = coef[0] / se[0] if se[0] > 0 else 0.0
     
     return {
         'tot_strat': tot_strat,
         'tot_mkt': tot_mkt,
         'alpha': alpha,
+        'alpha_t': alpha_t,
+        'beta': beta,
+        'excess_ret': excess_ret,
         'cagr_s': cagr_s,
         'cagr_m': cagr_m,
         'max_dd_s': max_dd_s,
@@ -299,6 +317,7 @@ def backtest_plan_b_1x(df_calc, start_date='2023-01-01', end_date='2026-10-08',
         'sharpe_s': sharpe_s,
         'sortino_s': sortino_s,
         'calmar_s': calmar_s,
+        'calmar_m': calmar_m,
         'trades_count': len(tdf),
         'trades': tdf,
         'cum_strat': cum_strat,
@@ -375,10 +394,10 @@ def build_report_data(df_calc, res, symbol, start_date, end_date, mode, exit_wei
         'ret': round(float(tr['return']) * 100, 2), 'days': int(tr['bars']), 'open': bool(tr['open_pos']),
     } for _, tr in res['trades'].iterrows()]
 
-    keys = ['tot_strat', 'tot_mkt', 'alpha', 'cagr_s', 'cagr_m', 'max_dd_s', 'max_dd_m', 'calmar_s',
+    keys = ['tot_strat', 'tot_mkt', 'excess_ret', 'alpha', 'alpha_t', 'beta', 'cagr_s', 'cagr_m', 'max_dd_s', 'max_dd_m', 'calmar_s',
             'sharpe_s', 'sortino_s', 'win_rate', 'profit_factor', 'win_loss', 'trades_count']
     stats = {k: round(float(res[k]), 2) for k in keys}
-    stats['bnh_calmar'] = round(res['tot_mkt'] / abs(res['max_dd_m']), 2) if res['max_dd_m'] != 0 else 0.0
+    stats['bnh_calmar'] = round(float(res['calmar_m']), 2)
 
     if cfg['exit_mode'] == 'dual_stage_buffered':
         exit_rule = (f'收盤站上上軌之前，收盤跌破下軌就停損；站上上軌之後，出場線上移到 '
@@ -461,7 +480,8 @@ def main():
     print(f"  Period: {args.start} ~ {args.end}")
     print("=========================================================================")
     print(f"[Plan B (1.0x Pure Spot / Dual-Stage Exit)]")
-    print(f"  Total Return: {res_b_1x['tot_strat']:+7.2f}% (B&H: {res_b_1x['tot_mkt']:+7.2f}%) | Alpha: {res_b_1x['alpha']:+7.2f}%")
+    print(f"  Total Return: {res_b_1x['tot_strat']:+7.2f}% (B&H: {res_b_1x['tot_mkt']:+7.2f}%) | Excess: {res_b_1x['excess_ret']:+7.2f}%")
+    print(f"  Alpha (ann.): {res_b_1x['alpha']:+7.2f}% (t = {res_b_1x['alpha_t']:.2f}) | Beta: {res_b_1x['beta']:.2f}")
     print(f"  CAGR:         {res_b_1x['cagr_s']:+7.2f}% (B&H: {res_b_1x['cagr_m']:+7.2f}%)")
     print(f"  Max Drawdown: {res_b_1x['max_dd_s']:7.2f}% (B&H: {res_b_1x['max_dd_m']:7.2f}%) | Calmar: {res_b_1x['calmar_s']:.2f}")
     print(f"  Sharpe Ratio: {res_b_1x['sharpe_s']:7.2f}  | Sortino: {res_b_1x['sortino_s']:.2f}")
@@ -472,7 +492,7 @@ def main():
     print(f"  Plan B (1.0x Spot)  : Return {res_b_1x['tot_strat']:+7.2f}% | MaxDD {res_b_1x['max_dd_s']:6.2f}% | Calmar {res_b_1x['calmar_s']:.2f}")
     print(f"  Plan A (1.0x Buffer): Return {res_a_1x['tot_strat']:+7.2f}% | MaxDD {res_a_1x['max_dd_s']:6.2f}% | Calmar {res_a_1x['calmar_s']:.2f}")
     print(f"  Plan B (1.2x Boost) : Return {res_b_12x['tot_strat']:+7.2f}% | MaxDD {res_b_12x['max_dd_s']:6.2f}% | Calmar {res_b_12x['calmar_s']:.2f}")
-    print(f"  Buy & Hold Benchmark: Return {res_b_1x['tot_mkt']:+7.2f}% | MaxDD {res_b_1x['max_dd_m']:6.2f}% | Calmar {res_b_1x['tot_mkt']/abs(res_b_1x['max_dd_m']):.2f}")
+    print(f"  Buy & Hold Benchmark: Return {res_b_1x['tot_mkt']:+7.2f}% | MaxDD {res_b_1x['max_dd_m']:6.2f}% | Calmar {res_b_1x['calmar_m']:.2f}")
     print("=========================================================================")
 
     if not args.no_html:

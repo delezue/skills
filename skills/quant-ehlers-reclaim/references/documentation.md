@@ -54,9 +54,11 @@ $$\text{LowerBand}_t = \text{TrendMA}_t - 0.7 \cdot \text{PctDist}_t$$
 | Metric | Plan B (1.0x Golden Params) | Buy & Hold Benchmark |
 | :--- | :---: | :---: |
 | Total Return | **+220.99%** | +201.54% |
-| Alpha | **+19.45%** | 0.00% |
+| Excess Return (total-return difference) | **+19.45%** | 0.00% |
+| Alpha (annualised Jensen, β = 0.57, t = 2.77) | **+18.50%** | 0.00% |
+| CAGR | **+47.19%** | +44.17% |
 | Max Drawdown | **-13.55%** | **-28.69%** |
-| Calmar Ratio | **16.30** | **7.02** |
+| Calmar Ratio (CAGR/MDD) | **3.48** | 1.54 |
 | Sharpe Ratio | **2.36** | 1.84 |
 | Win Rate | **57.9%** | — |
 | Profit Factor | **8.12** | — |
@@ -67,5 +69,12 @@ $$\text{LowerBand}_t = \text{TrendMA}_t - 0.7 \cdot \text{PctDist}_t$$
 | :--- | :---: | :---: |
 | Total Return | **+266.44%** | +248.81% |
 | Max Drawdown | **-13.55%** | **-28.69%** |
-| Calmar Ratio | **19.66** | 8.67 |
+| Alpha (annualised Jensen, β = 0.58, t = 2.83) | **+15.73%** | 0.00% |
+| CAGR | **+41.23%** | +39.39% |
+| Calmar Ratio (CAGR/MDD) | **3.04** | 1.37 |
 | Sharpe Ratio | **2.24** | 1.67 |
+
+### Metric Definitions
+- **Excess Return** = strategy total return − Buy & Hold total return (percentage points). This is *not* alpha.
+- **Alpha (Jensen, annualised)**: OLS of daily strategy returns on daily benchmark returns, $r_s = \alpha + \beta\,r_m + \varepsilon$ (risk-free rate taken as 0); reported as $\alpha \times 252$. `alpha_t` is the t-statistic of the intercept; `beta` is the average market exposure.
+- **Calmar Ratio** = CAGR / |Max Drawdown|. (Earlier versions used total return / MDD, which grows with the length of the test window and is not comparable across periods.)

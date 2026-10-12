@@ -30,9 +30,11 @@ The core architecture combines:
 ### 1. 過去 3 年核心基準 (2023-10-01 ~ 2026-10-08)
 | Metric | Plan B (1.0x Golden Params) | Buy & Hold Benchmark | Quantitative Advantage |
 | :--- | :---: | :---: | :--- |
-| **Total Return** | **+220.99%** | +201.54% | **逆轉超越大盤 +19.45% Alpha！** |
+| **Total Return** | **+220.99%** | +201.54% | 總報酬多 +19.45 個百分點（超額報酬，非 Alpha） |
+| **Alpha (annualised, Jensen)** | **+18.50%** (t = 2.77) | 0.00% | β = 0.57；日報酬對大盤迴歸的截距 ×252 |
 | **Max Drawdown (MDD)** | **-13.55%** | **-28.69%** | **回撤深度降低 52.8%（極致風控）** |
-| **Calmar Ratio (Ret/MDD)** | **16.30** | **7.02** | **風險調整回報為大盤 2.3 倍 (+132%)** |
+| **CAGR** | **+47.19%** | +44.17% | |
+| **Calmar Ratio (CAGR/MDD)** | **3.48** | 1.54 | 風險調整回報約為大盤 2.3 倍 |
 | **Sharpe Ratio** | **2.36** | 1.84 | 機構級頂級風險回報比 |
 | **Win Rate** | **57.9%** (11勝 / 8負) | — | 兼具高勝率與大賺小賠 |
 | **Profit Factor** | **8.12** | — | 法人對沖基金級水準 |
@@ -41,9 +43,11 @@ The core architecture combines:
 ### 2. 全週期歷史跨期驗證 (2023-01-01 ~ 2026-10-08)
 | Metric | Plan B (1.0x Golden Params) | Buy & Hold Benchmark | Quantitative Advantage |
 | :--- | :---: | :---: | :--- |
-| **Total Return** | **+266.44%** | +248.81% | **零槓桿全面勝過大盤 (+17.63% Alpha)** |
+| **Total Return** | **+266.44%** | +248.81% | 總報酬多 +17.63 個百分點（超額報酬，非 Alpha） |
+| **Alpha (annualised, Jensen)** | **+15.73%** (t = 2.83) | 0.00% | β = 0.58 |
 | **Max Drawdown (MDD)** | **-13.55%** | **-28.69%** | 深度腰斬，避開所有千點急跌 |
-| **Calmar Ratio** | **19.66** | 8.67 | 資本效率極高 |
+| **CAGR** | **+41.23%** | +39.39% | |
+| **Calmar Ratio (CAGR/MDD)** | **3.04** | 1.37 | |
 | **Sharpe Ratio** | **2.24** | 1.67 | 資金成長平滑穩健 |
 
 ---
@@ -94,7 +98,7 @@ python skills/quant-ehlers-reclaim/scripts/ehlers_reclaim_engine.py --symbol QQQ
 Every run (unless `--no-html`) writes one self-contained HTML file for the selected `--mode` (`compare` reports Plan B 1.0x).
 It loads ECharts 5.5.0 from cdnjs, so it needs internet access when opened; all data is embedded in the page. It contains:
 
-- **KPI strip**: total return vs Buy & Hold, alpha, CAGR, max drawdown, Calmar, Sharpe/Sortino, win rate, profit factor/payoff.
+- **KPI strip**: total return vs Buy & Hold, excess return (total-return difference), annualised Jensen alpha with β and t-stat, CAGR, max drawdown, Calmar (CAGR / |MaxDD|), Sharpe/Sortino, win rate, profit factor/payoff.
 - **Current position card**: holding/flat on the last bar, the active exit floor (stage 1 = LowerBand stop, stage 2 = 0.6×TrendMA + 0.4×LowerBand take-profit; Plan A = LowerBand×0.985), distance to it, and the bands.
 - **Three synced panels** (shared zoom + crosshair tooltip): Taiwan-convention candlesticks (red up / green down) with TrendMA, Upper/Lower bands, the exit floor while held, held-period shading and buy/sell markers at the execution bar; cumulative return vs Buy & Hold; drawdown. Range buttons 3M / 6M / 1Y / All.
 - **Trade ledger**: click a row to zoom the chart to that trade. `bars` is calendar days.

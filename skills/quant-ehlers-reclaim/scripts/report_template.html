@@ -189,9 +189,10 @@ $("#n-exit").textContent = M.exitRule;
 // KPI strip
 const kpis = [
   ["總報酬", `<span class="${cls(S.tot_strat)}">${sgn(S.tot_strat)}%</span>`, `買進持有 <span class="num">${sgn(S.tot_mkt)}%</span>`],
-  ["超額報酬", `<span class="${cls(S.alpha)}">${sgn(S.alpha)}%</span>`, `年化 <span class="num">${sgn(S.cagr_s)}%</span> vs <span class="num">${sgn(S.cagr_m)}%</span>`],
+  ["超額報酬", `<span class="${cls(S.excess_ret)}">${sgn(S.excess_ret)}%</span>`, `總報酬相減 · 年化 <span class="num">${sgn(S.cagr_s)}%</span> vs <span class="num">${sgn(S.cagr_m)}%</span>`],
+  ["Alpha（年化）", `<span class="${cls(S.alpha)}">${sgn(S.alpha)}%</span>`, `迴歸 β <span class="num">${fmt(S.beta)}</span> · t <span class="num">${fmt(S.alpha_t)}</span>`],
   ["最大回撤", `${fmt(S.max_dd_s)}%`, `買進持有 <span class="num">${fmt(S.max_dd_m)}%</span>`],
-  ["Calmar", fmt(S.calmar_s), `買進持有 <span class="num">${fmt(S.bnh_calmar)}</span>`],
+  ["Calmar", fmt(S.calmar_s), `年化報酬 ÷ 最大回撤 · 買進持有 <span class="num">${fmt(S.bnh_calmar)}</span>`],
   ["Sharpe / Sortino", `${fmt(S.sharpe_s)} / ${fmt(S.sortino_s)}`, "日報酬年化"],
   ["勝率", `${fmt(S.win_rate, 1)}%`, `${D.trades.filter(t => t.ret > 0).length} 勝 ${D.trades.filter(t => t.ret <= 0).length} 敗 · ${S.trades_count} 筆`],
   ["獲利因子 / 盈虧比", `${fmt(S.profit_factor)} / ${fmt(S.win_loss)}`, "總獲利 ÷ 總虧損"],
