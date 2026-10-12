@@ -1,0 +1,344 @@
+<title>__TITLE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: one column trading-desk report — summary strip, position card, stacked synced chart, trade ledger */
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --line: #dfe3ea; --grid: #eceff4;
+  --fg: #14171c; --fg2: #4d5562; --muted: #7a8291;
+  --accent: #2a78d6; --accent-soft: rgba(42,120,214,.09);
+  --trend: #6250d6; --band: #9a8fe6; --floor: #eb6834; --bnh: #8a929e;
+  --up: #d23a3a; --down: #15925a; --up-soft: #fbeaea; --down-soft: #e6f4ec;
+  --font-body: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", system-ui, sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121418; --panel: #1a1d23; --line: #2c313a; --grid: #23272f;
+  --fg: #eceef2; --fg2: #b4bbc6; --muted: #858d9a;
+  --accent: #3f8ce8; --accent-soft: rgba(63,140,232,.13);
+  --trend: #9085e9; --band: #6e64b8; --floor: #e0692f; --bnh: #7c8490;
+  --up: #ec5c5c; --down: #2fb177; --up-soft: rgba(236,92,92,.14); --down-soft: rgba(47,177,119,.14);
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121418; --panel: #1a1d23; --line: #2c313a; --grid: #23272f;
+  --fg: #eceef2; --fg2: #b4bbc6; --muted: #858d9a;
+  --accent: #3f8ce8; --accent-soft: rgba(63,140,232,.13);
+  --trend: #9085e9; --band: #6e64b8; --floor: #e0692f; --bnh: #7c8490;
+  --up: #ec5c5c; --down: #2fb177; --up-soft: rgba(236,92,92,.14); --down-soft: rgba(47,177,119,.14);
+  color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 14px; line-height: 1.55 }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 48px; display: grid; gap: 22px }
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums }
+header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px }
+.eyebrow { font-size: 12px; letter-spacing: .08em; color: var(--muted); text-transform: uppercase }
+h1 { font-size: 26px; line-height: 1.25; margin: 4px 0 0; font-weight: 700; text-wrap: balance }
+.meta { color: var(--fg2); font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px 16px }
+.meta b { color: var(--fg); font-weight: 500 }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden }
+.kpi { background: var(--panel); padding: 14px 16px; display: grid; gap: 2px; align-content: start; min-width: 0 }
+.kpi .k { font-size: 12px; color: var(--muted) }
+.kpi .v { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 600; line-height: 1.2 }
+.kpi .s { font-size: 12px; color: var(--fg2) }
+.kpi .s .num { color: var(--fg) }
+.pos { color: var(--up) } .neg { color: var(--down) }
+
+.status { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; grid-template-columns: auto 1fr; gap: 14px 22px; align-items: center }
+.pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; font-weight: 700; font-size: 14px; background: var(--up-soft); color: var(--up); white-space: nowrap }
+.pill.flat { background: var(--grid); color: var(--fg2) }
+.pill i { width: 8px; height: 8px; border-radius: 50%; background: currentColor }
+.levels { display: flex; flex-wrap: wrap; gap: 8px 26px; min-width: 0 }
+.lv { display: grid; gap: 0 }
+.lv .k { font-size: 12px; color: var(--muted) }
+.lv .v { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 16px; font-weight: 500 }
+.lv.hl .v { color: var(--floor); font-weight: 600 }
+.status p { grid-column: 1 / -1; margin: 0; color: var(--fg2); font-size: 13px; max-width: 80ch }
+.status p b { color: var(--fg) }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 14px 8px; min-width: 0 }
+.card-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; padding: 2px 4px 8px }
+.card-head h2 { font-size: 16px; margin: 0; font-weight: 700 }
+.ranges { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden }
+.ranges button { font: inherit; font-size: 13px; padding: 5px 12px; background: transparent; color: var(--fg2); border: 0; border-left: 1px solid var(--line); cursor: pointer }
+.ranges button:first-child { border-left: 0 }
+.ranges button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 500 }
+.ranges button:focus-visible, .tbl-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 0 4px 6px; font-size: 12px; color: var(--fg2) }
+.legend span { display: inline-flex; align-items: center; gap: 6px }
+.sw { width: 16px; height: 0; border-top: 2px solid; display: inline-block }
+.sw.dash { border-top-style: dashed }
+.sw.box { width: 12px; height: 10px; border: 0; border-radius: 2px }
+.tri { width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; display: inline-block }
+#chart { width: 100%; height: 760px }
+
+h2.sec { font-size: 16px; margin: 0 0 10px; font-weight: 700 }
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel) }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 13px }
+th, td { padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap }
+th { font-weight: 500; color: var(--muted); font-size: 12px; position: sticky; top: 0; background: var(--panel) }
+th:first-child, td:first-child, th:nth-child(2), td:nth-child(2), th:nth-child(4), td:nth-child(4) { text-align: left }
+td { font-family: var(--font-num); font-variant-numeric: tabular-nums }
+tbody tr { cursor: pointer }
+tbody tr:hover { background: var(--accent-soft) }
+tr:last-child td { border-bottom: 0 }
+.tag { font-family: var(--font-body); font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--grid); color: var(--fg2); margin-left: 6px }
+.tbl-note { font-size: 12px; color: var(--muted); margin: 8px 2px 0 }
+
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px }
+.note { border-top: 2px solid var(--line); padding-top: 10px; min-width: 0 }
+.note h3 { font-size: 14px; margin: 0 0 4px }
+.note p { margin: 0; color: var(--fg2); font-size: 13px }
+footer { color: var(--muted); font-size: 12px }
+
+@media (max-width: 640px) {
+  .wrap { padding-inline: 16px; padding-block: 20px 40px }
+  h1 { font-size: 21px }
+  .status { grid-template-columns: 1fr }
+  #chart { height: 640px }
+  .kpi .v { font-size: 19px }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow" id="m-eyebrow"></div>
+      <h1 id="m-h1"></h1>
+    </div>
+    <div class="meta">
+      <span>標的 <b id="m-symbol"></b></span>
+      <span>區間 <b class="num" id="m-range"></b></span>
+      <span>執行 <b>收盤訊號、隔日開盤成交</b></span>
+      <span>部位 <b id="m-pos"></b></span>
+    </div>
+  </header>
+
+  <section class="kpis" id="kpis" aria-label="績效摘要"></section>
+
+  <section class="status" id="status" aria-label="目前部位"></section>
+
+  <section class="card" aria-label="K 線與權益曲線">
+    <div class="card-head">
+      <h2>K 線、通道與買賣點</h2>
+      <div class="ranges" role="group" aria-label="顯示區間">
+        <button type="button" id="r-3m" data-m="3">3 個月</button>
+        <button type="button" id="r-6m" data-m="6">6 個月</button>
+        <button type="button" id="r-1y" data-m="12">1 年</button>
+        <button type="button" id="r-all" data-m="0" aria-pressed="true">全部</button>
+      </div>
+    </div>
+    <div class="legend" aria-hidden="true">
+      <span><i class="sw box" style="background:var(--up)"></i>漲</span>
+      <span><i class="sw box" style="background:var(--down)"></i>跌</span>
+      <span><i class="sw" style="border-color:var(--trend)"></i>TrendMA</span>
+      <span><i class="sw dash" style="border-color:var(--band)"></i>上軌 / 下軌</span>
+      <span><i class="sw" style="border-color:var(--floor)"></i>出場線（持有中）</span>
+      <span><i class="sw box" style="background:var(--accent-soft);outline:1px solid var(--accent)"></i>持有期間</span>
+      <span><i class="tri" style="border-bottom:9px solid var(--accent)"></i>買進</span>
+      <span><i class="tri" style="border-top:9px solid var(--fg)"></i>賣出</span>
+      <span><i class="sw" style="border-color:var(--accent)"></i>策略權益</span>
+      <span><i class="sw" style="border-color:var(--bnh)"></i>買進持有</span>
+    </div>
+    <div id="chart" role="img" aria-label="K 線、Ehlers 通道、買賣點、累積報酬與回撤圖"></div>
+  </section>
+
+  <section>
+    <h2 class="sec">交易明細</h2>
+    <div class="tbl-wrap" tabindex="0">
+      <table>
+        <thead><tr><th>#</th><th>買進日</th><th>買進價</th><th>賣出日</th><th>賣出價</th><th>報酬</th><th>持有天數</th></tr></thead>
+        <tbody id="trades"></tbody>
+      </table>
+    </div>
+    <p class="tbl-note">點任一列，圖表會跳到那筆交易。持有天數為日曆天。</p>
+  </section>
+
+  <section class="notes" aria-label="解讀注意事項">
+    <div class="note"><h3>第 1 筆是起始假設</h3><p>程式在回測起始日就設定為持有，所以 2023-01-03 那筆不是真正的破底翻訊號，部分超額報酬來自這個起點。</p></div>
+    <div class="note"><h3>未扣交易成本</h3><p id="n-cost"></p></div>
+    <div class="note"><h3>參數在同一段資料上調校</h3><p id="n-params"></p></div>
+    <div class="note"><h3>出場規則</h3><p id="n-exit"></p></div>
+  </section>
+
+  <footer>資料來源：Yahoo Finance（yfinance）日 K。指標與回測：quant-ehlers-reclaim skill 的 ehlers_reclaim_engine.py（<span id="m-params"></span>）。本頁僅供研究，不構成投資建議。</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+<script>
+const D = /*__DATA__*/null;
+const $ = s => document.querySelector(s);
+const fmt = (x, d = 2) => x == null ? "—" : x.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+const sgn = (x, d = 2) => (x > 0 ? "+" : "") + fmt(x, d);
+const cls = x => x > 0 ? "pos" : x < 0 ? "neg" : "";
+const S = D.stats, L = D.last;
+
+$("#m-range").textContent = `${D.start} ~ ${D.end}`;
+const M = D.meta;
+$("#m-eyebrow").textContent = `Adaptive Ehlers Percentile Reclaim · ${M.modeEn}`;
+$("#m-h1").textContent = `${M.modeLabel} · ${M.symbol} 回測`;
+$("#m-symbol").textContent = M.symbol;
+$("#m-pos").textContent = `${M.leverage}、未計成本`;
+$("#m-params").textContent = M.params;
+$("#n-cost").textContent = `手續費、稅與滑價都沒有扣除。${D.trades.length} 次進出若以每次來回約 0.3–0.4% 估算，報酬會少約 ${fmt(D.trades.length * 0.3, 0)}–${fmt(D.trades.length * 0.4, 0)} 個百分點。`;
+$("#n-params").textContent = M.symbol === "^TWII" ? "預設的「黃金參數」是在 ^TWII 歷史上最佳化的，與這段回測資料重疊，因此不是樣本外測試，未來表現應打折看待。" : `預設的「黃金參數」是在 ^TWII 上最佳化的，套用到 ${M.symbol} 時沒有重新調校；結果好壞都不代表參數適合這個標的。`;
+$("#n-exit").textContent = M.exitRule;
+
+// KPI strip
+const kpis = [
+  ["總報酬", `<span class="${cls(S.tot_strat)}">${sgn(S.tot_strat)}%</span>`, `買進持有 <span class="num">${sgn(S.tot_mkt)}%</span>`],
+  ["超額報酬", `<span class="${cls(S.alpha)}">${sgn(S.alpha)}%</span>`, `年化 <span class="num">${sgn(S.cagr_s)}%</span> vs <span class="num">${sgn(S.cagr_m)}%</span>`],
+  ["最大回撤", `${fmt(S.max_dd_s)}%`, `買進持有 <span class="num">${fmt(S.max_dd_m)}%</span>`],
+  ["Calmar", fmt(S.calmar_s), `買進持有 <span class="num">${fmt(S.bnh_calmar)}</span>`],
+  ["Sharpe / Sortino", `${fmt(S.sharpe_s)} / ${fmt(S.sortino_s)}`, "日報酬年化"],
+  ["勝率", `${fmt(S.win_rate, 1)}%`, `${D.trades.filter(t => t.ret > 0).length} 勝 ${D.trades.filter(t => t.ret <= 0).length} 敗 · ${S.trades_count} 筆`],
+  ["獲利因子 / 盈虧比", `${fmt(S.profit_factor)} / ${fmt(S.win_loss)}`, "總獲利 ÷ 總虧損"],
+];
+$("#kpis").innerHTML = kpis.map(([k, v, s]) => `<div class="kpi"><span class="k">${k}</span><span class="v">${v}</span><span class="s">${s}</span></div>`).join("");
+
+// Current position card
+const open = D.trades.find(t => t.open);
+const held = L.floor != null;
+const dist = held ? (L.close / L.floor - 1) * 100 : null;
+$("#status").innerHTML = `
+  <span class="pill ${held ? "" : "flat"}"><i></i>${held ? "持有中" : "空手"}</span>
+  <div class="levels">
+    <div class="lv"><span class="k">${L.date} 收盤</span><span class="v">${fmt(L.close)}</span></div>
+    ${held ? `<div class="lv hl"><span class="k">出場線（${!M.twoStage ? M.floorName : L.stage === 2 ? "第 2 段 停利" : "第 1 段 停損"}）</span><span class="v">${fmt(L.floor)}</span></div>
+    <div class="lv"><span class="k">距出場線</span><span class="v">${fmt(dist)}%</span></div>` : ""}
+    <div class="lv"><span class="k">上軌</span><span class="v">${fmt(L.upper)}</span></div>
+    <div class="lv"><span class="k">TrendMA</span><span class="v">${fmt(L.trend)}</span></div>
+    <div class="lv"><span class="k">下軌</span><span class="v">${fmt(L.lower)}</span></div>
+  </div>
+  ${held && open ? `<p>這筆部位在 <b>${open.entry}</b> 以 <b class="num">${fmt(open.entryPx)}</b> 買進，目前未實現 <b class="num ${cls(open.ret)}">${sgn(open.ret)}%</b>。${!M.twoStage ? "" : L.stage === 2 ? "收盤已站上上軌，出場線已上移到第 2 段。" : "尚未站上上軌，出場線仍是下軌。"}若之後某日<b>收盤跌破 ${fmt(L.floor)}</b>，隔天開盤賣出。出場線會隨每日的 TrendMA 與下軌移動。</p>` : ""}`;
+
+// Trade table
+$("#trades").innerHTML = D.trades.map((t, i) => `<tr data-i="${i}">
+  <td>${i + 1}</td><td>${t.entry}${i === 0 ? '<span class="tag">起始持有</span>' : ""}</td><td>${fmt(t.entryPx)}</td>
+  <td>${t.exit}${t.open ? '<span class="tag">持有中</span>' : ""}</td><td>${fmt(t.exitPx)}</td>
+  <td class="${cls(t.ret)}">${sgn(t.ret)}%</td><td>${t.days}</td></tr>`).join("");
+
+// Chart
+const chart = echarts.init($("#chart"), null, { renderer: "canvas" });
+const N = D.dates.length;
+const dIdx = Object.fromEntries(D.dates.map((d, i) => [d, i]));
+const tok = () => { const cs = getComputedStyle(document.documentElement); return n => cs.getPropertyValue("--" + n).trim(); };
+
+function heldAreas() {
+  return D.trades.map(t => [{ xAxis: t.entry }, { xAxis: t.exit }]);
+}
+function markers(c) {
+  const buys = [], sells = [];
+  D.trades.forEach((t, i) => {
+    const bi = dIdx[t.entry];
+    if (bi != null) buys.push({ value: [t.entry, D.ohlc[bi][2]], t, i, kind: i === 0 ? "起始持有" : "買進" });
+    if (!t.open) { const si = dIdx[t.exit]; if (si != null) sells.push({ value: [t.exit, D.ohlc[si][3]], t, i, kind: "賣出" }); }
+  });
+  return { buys, sells };
+}
+
+function option() {
+  const c = tok();
+  const font = getComputedStyle(document.body).fontFamily;
+  const axisTxt = { color: c("muted"), fontFamily: font, fontSize: 11 };
+  const { buys, sells } = markers(c);
+  const grids = [
+    { left: 64, right: 18, top: 10, height: "52%" },
+    { left: 64, right: 18, top: "61%", height: "17%" },
+    { left: 64, right: 18, top: "81.5%", height: "9%" },
+  ];
+  const xa = i => ({ type: "category", gridIndex: i, data: D.dates, boundaryGap: true,
+    axisLine: { lineStyle: { color: c("line") } }, axisTick: { show: false },
+    axisLabel: { ...axisTxt, show: i === 2, hideOverlap: true }, splitLine: { show: false },
+    axisPointer: { label: { show: i === 2, backgroundColor: c("fg2"), color: c("panel") } } });
+  const ya = (i, name, fmtr) => ({ type: "value", gridIndex: i, scale: i === 0, name, nameTextStyle: { ...axisTxt, align: "left", padding: [0, 0, 0, -56] },
+    nameGap: 8, splitNumber: i === 0 ? 5 : 3, axisLabel: { ...axisTxt, formatter: fmtr },
+    splitLine: { lineStyle: { color: c("grid") } }, axisLine: { show: false }, axisTick: { show: false },
+    axisPointer: { label: { backgroundColor: c("fg2"), color: c("panel"), formatter: p => fmtr(p.value) } } });
+  const line = (name, data, color, xi, extra = {}) => ({ name, type: "line", data, xAxisIndex: xi, yAxisIndex: xi,
+    showSymbol: false, symbol: "none", lineStyle: { width: 1.6, color }, itemStyle: { color }, emphasis: { disabled: true }, ...extra });
+
+  return {
+    animation: false, backgroundColor: "transparent",
+    textStyle: { fontFamily: font, color: c("fg") },
+    axisPointer: { link: [{ xAxisIndex: "all" }], lineStyle: { color: c("muted"), type: "dashed" } },
+    tooltip: { trigger: "axis", axisPointer: { type: "cross" }, confine: true, backgroundColor: c("panel"), borderColor: c("line"),
+      textStyle: { color: c("fg"), fontSize: 12 }, extraCssText: "box-shadow:0 4px 16px rgba(0,0,0,.12);border-radius:8px;",
+      formatter: ps => {
+        const i = ps[0].dataIndex, o = D.ohlc[i], prev = i > 0 ? D.ohlc[i - 1][1] : o[0];
+        const chg = (o[1] / prev - 1) * 100;
+        const row = (k, v, col) => `<div style="display:flex;justify-content:space-between;gap:18px"><span style="color:${c("muted")}">${col ? `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${col};margin-right:6px"></span>` : ""}${k}</span><span style="font-family:var(--font-num)">${v}</span></div>`;
+        const ev = [...buys, ...sells].filter(m => m.value[0] === D.dates[i]).map(m => `<div style="margin-top:4px;font-weight:600">${m.kind} #${m.i + 1} @ ${fmt(m.kind === "賣出" ? m.t.exitPx : m.t.entryPx)}${m.kind === "賣出" ? `（${sgn(m.t.ret)}%）` : ""}</div>`).join("");
+        return `<div style="font-weight:600;margin-bottom:4px">${D.dates[i]}</div>` +
+          row("開 / 收", `${fmt(o[0])} / ${fmt(o[1])}`) + row("高 / 低", `${fmt(o[3])} / ${fmt(o[2])}`) +
+          row("漲跌", `<span style="color:${chg >= 0 ? c("up") : c("down")}">${sgn(chg)}%</span>`) +
+          row("上軌", fmt(D.upper[i]), c("band")) + row("TrendMA", fmt(D.trend[i]), c("trend")) + row("下軌", fmt(D.lower[i]), c("band")) +
+          (D.floor[i] != null ? row(M.twoStage ? `出場線（第 ${D.stage[i]} 段）` : "出場線", fmt(D.floor[i]), c("floor")) : "") +
+          row("策略累積", `${sgn(D.equity[i])}%`, c("accent")) + row("買進持有", `${sgn(D.bnh[i])}%`, c("bnh")) +
+          row("策略回撤", `${fmt(D.ddS[i])}%`) + ev;
+      } },
+    grid: grids,
+    xAxis: [xa(0), xa(1), xa(2)],
+    yAxis: [ya(0, "指數", v => Math.round(v).toLocaleString("en-US")), ya(1, "累積報酬 %", v => Math.round(v) + "%"), ya(2, "回撤 %", v => Math.round(v) + "%")],
+    dataZoom: [
+      { type: "inside", xAxisIndex: [0, 1, 2], start: 0, end: 100, minValueSpan: 20 },
+      { type: "slider", xAxisIndex: [0, 1, 2], bottom: 6, height: 22, start: 0, end: 100, borderColor: c("line"),
+        fillerColor: c("accent-soft"), backgroundColor: "transparent", dataBackground: { lineStyle: { color: c("muted") }, areaStyle: { color: c("grid") } },
+        handleStyle: { color: c("panel"), borderColor: c("accent") }, moveHandleStyle: { color: c("line") },
+        textStyle: axisTxt, labelFormatter: (v, s) => s },
+    ],
+    series: [
+      { name: "K 線", type: "candlestick", data: D.ohlc, xAxisIndex: 0, yAxisIndex: 0, barMaxWidth: 10,
+        itemStyle: { color: c("up"), color0: c("down"), borderColor: c("up"), borderColor0: c("down") },
+        markArea: { silent: true, itemStyle: { color: c("accent-soft") }, data: heldAreas() } },
+      line("上軌", D.upper, c("band"), 0, { lineStyle: { width: 1.2, type: "dashed", color: c("band") } }),
+      line("下軌", D.lower, c("band"), 0, { lineStyle: { width: 1.2, type: "dashed", color: c("band") } }),
+      line("TrendMA", D.trend, c("trend"), 0),
+      line("出場線", D.floor, c("floor"), 0, { step: "middle", connectNulls: false, lineStyle: { width: 2, color: c("floor") } }),
+      { name: "買進", type: "scatter", data: buys, xAxisIndex: 0, yAxisIndex: 0, symbol: "triangle", symbolSize: 11, symbolOffset: [0, 10],
+        itemStyle: { color: c("accent"), borderColor: c("panel"), borderWidth: 1.5 }, z: 10 },
+      { name: "賣出", type: "scatter", data: sells, xAxisIndex: 0, yAxisIndex: 0, symbol: "triangle", symbolRotate: 180, symbolSize: 11, symbolOffset: [0, -10],
+        itemStyle: { color: c("fg"), borderColor: c("panel"), borderWidth: 1.5 }, z: 10 },
+      line("買進持有", D.bnh, c("bnh"), 1, { lineStyle: { width: 1.6, color: c("bnh") } }),
+      line("策略權益", D.equity, c("accent"), 1, { lineStyle: { width: 2, color: c("accent") },
+        endLabel: { show: true, color: c("fg"), fontFamily: font, fontSize: 11, formatter: p => sgn(p.value, 1) + "%" } }),
+      line("買進持有回撤", D.ddM, c("bnh"), 2, { lineStyle: { width: 1.2, color: c("bnh") } }),
+      line("策略回撤", D.ddS, c("accent"), 2, { lineStyle: { width: 1.4, color: c("accent") }, areaStyle: { color: c("accent-soft") } }),
+    ],
+  };
+}
+
+let zoom = { start: 0, end: 100 };
+function render() { chart.setOption(option(), true); chart.dispatchAction({ type: "dataZoom", start: zoom.start, end: zoom.end }); }
+chart.on("datazoom", () => { const z = chart.getOption().dataZoom[0]; zoom = { start: z.start, end: z.end }; });
+render();
+
+function setRange(months) {
+  document.querySelectorAll(".ranges button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.m === months)));
+  let s = 0;
+  if (months) {
+    const cut = new Date(D.dates[N - 1]); cut.setMonth(cut.getMonth() - months);
+    const k = D.dates.findIndex(d => new Date(d) >= cut); s = Math.max(0, k) / N * 100;
+  }
+  zoom = { start: s, end: 100 };
+  chart.dispatchAction({ type: "dataZoom", start: zoom.start, end: zoom.end });
+}
+document.querySelectorAll(".ranges button").forEach(b => b.addEventListener("click", () => setRange(+b.dataset.m)));
+
+document.querySelector("#trades").addEventListener("click", e => {
+  const tr = e.target.closest("tr"); if (!tr) return;
+  const t = D.trades[+tr.dataset.i];
+  const a = Math.max(0, dIdx[t.entry] - 15), b = Math.min(N - 1, (dIdx[t.exit] ?? N - 1) + 15);
+  document.querySelectorAll(".ranges button").forEach(x => x.setAttribute("aria-pressed", "false"));
+  zoom = { start: a / N * 100, end: (b + 1) / N * 100 };
+  chart.dispatchAction({ type: "dataZoom", start: zoom.start, end: zoom.end });
+  $("#chart").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+});
+
+window.addEventListener("resize", () => chart.resize());
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+document.fonts && document.fonts.ready.then(render);
+</script>

@@ -10,6 +10,8 @@ Implements:
 """
 
 import argparse
+import html
+import json
 import sys
 import os
 import yfinance as yf
@@ -307,6 +309,124 @@ def backtest_plan_b_1x(df_calc, start_date='2023-01-01', end_date='2026-10-08',
     }
 
 
+MODES = {
+    'plan_b_1x':  {'exit_mode': 'dual_stage_buffered', 'pos_boost': 1.0, 'label': '方案 B 破底翻',
+                   'en': 'Plan B 1.0x', 'leverage': '1.0x 純現貨', 'two_stage': True},
+    'plan_a_1x':  {'exit_mode': 'lower_band_buffer', 'pos_boost': 1.0, 'label': '方案 A 破底翻',
+                   'en': 'Plan A 1.0x', 'leverage': '1.0x 純現貨', 'two_stage': False},
+    'plan_b_12x': {'exit_mode': 'dual_stage_buffered', 'pos_boost': 1.2, 'label': '方案 B 微槓桿',
+                   'en': 'Plan B 1.2x', 'leverage': '綠色多頭區 1.2x、其餘 1.0x', 'two_stage': True},
+}
+
+
+def replay_exit_floor(df_calc, exit_mode='dual_stage_buffered', exit_weight=0.6):
+    """
+    Re-runs the backtest's signal state machine to recover, for every bar, the exit floor
+    that was active while a position was held (NaN when flat) and its stage (0 flat, 1, 2).
+    Must mirror backtest_plan_b_1x's entry/exit rules exactly.
+    """
+    c = df_calc['Close'].values
+    lb = df_calc['LowerBand'].values
+    ub = df_calc['UpperBand'].values
+    tma = df_calc['TrendMA'].values
+    col = df_calc['BarColor'].values
+    n = len(df_calc)
+    floor = np.full(n, np.nan)
+    stage = np.zeros(n, dtype=int)
+    had_breakdown = in_pos = reached_upper = False
+    for t in range(n):
+        if not in_pos:
+            if col[t] == 'PURPLE' and c[t] < lb[t]:
+                had_breakdown = True
+            if had_breakdown and col[t] == 'PURPLE' and c[t] > lb[t]:
+                in_pos, had_breakdown, reached_upper = True, False, False
+                floor[t] = lb[t] * 0.985 if exit_mode == 'lower_band_buffer' else lb[t]
+                stage[t] = 1
+        else:
+            if c[t] > ub[t]:
+                reached_upper = True
+            if exit_mode == 'dual_stage_buffered' and reached_upper:
+                f = tma[t] * exit_weight + lb[t] * (1.0 - exit_weight)
+            elif exit_mode == 'lower_band_buffer':
+                f = lb[t] * 0.985
+            else:
+                f = lb[t]
+            floor[t] = f
+            stage[t] = 2 if (exit_mode == 'dual_stage_buffered' and reached_upper) else 1
+            if c[t] < f:
+                in_pos, had_breakdown = False, True
+    return floor, stage
+
+
+def build_report_data(df_calc, res, symbol, start_date, end_date, mode, exit_weight=0.6):
+    """Collects everything the HTML report needs into one JSON-serialisable dict."""
+    cfg = MODES[mode]
+    floor, stage = replay_exit_floor(df_calc, cfg['exit_mode'], exit_weight)
+    mask = (df_calc.index >= start_date) & (df_calc.index <= end_date)
+    idx = np.where(mask)[0]
+    v = df_calc.iloc[idx]
+
+    def r2(a):
+        return [None if (x is None or not np.isfinite(x)) else round(float(x), 2) for x in np.asarray(a, dtype=float)]
+
+    trades = [{
+        'entry': pd.Timestamp(tr['entry_date']).strftime('%Y-%m-%d'), 'entryPx': round(float(tr['entry_price']), 2),
+        'exit': pd.Timestamp(tr['exit_date']).strftime('%Y-%m-%d'), 'exitPx': round(float(tr['exit_price']), 2),
+        'ret': round(float(tr['return']) * 100, 2), 'days': int(tr['bars']), 'open': bool(tr['open_pos']),
+    } for _, tr in res['trades'].iterrows()]
+
+    keys = ['tot_strat', 'tot_mkt', 'alpha', 'cagr_s', 'cagr_m', 'max_dd_s', 'max_dd_m', 'calmar_s',
+            'sharpe_s', 'sortino_s', 'win_rate', 'profit_factor', 'win_loss', 'trades_count']
+    stats = {k: round(float(res[k]), 2) for k in keys}
+    stats['bnh_calmar'] = round(res['tot_mkt'] / abs(res['max_dd_m']), 2) if res['max_dd_m'] != 0 else 0.0
+
+    if cfg['exit_mode'] == 'dual_stage_buffered':
+        exit_rule = (f'收盤站上上軌之前，收盤跌破下軌就停損；站上上軌之後，出場線上移到 '
+                     f'{exit_weight:g} × TrendMA + {1 - exit_weight:g} × 下軌。訊號在收盤確認，隔天開盤成交。')
+    else:
+        exit_rule = '收盤跌破「下軌 × 0.985」（下軌再往下 1.5% 的緩衝）就出場。訊號在收盤確認，隔天開盤成交。'
+
+    last = v.iloc[-1]
+    return {
+        'symbol': symbol, 'start': start_date, 'end': end_date,
+        'meta': {'symbol': symbol, 'mode': mode, 'modeLabel': cfg['label'], 'modeEn': cfg['en'],
+                 'leverage': cfg['leverage'], 'twoStage': cfg['two_stage'],
+                 'floorName': '下軌 −1.5%' if cfg['exit_mode'] == 'lower_band_buffer' else '下軌',
+                 'exitRule': exit_rule,
+                 'params': f'vol 12、Ehlers 9 / 12、百分位 40 根 75%、上軌 0.7、下軌 0.8、出場權重 {exit_weight:g}'},
+        'dates': [d.strftime('%Y-%m-%d') for d in v.index],
+        'ohlc': [[round(float(o), 2), round(float(c), 2), round(float(lo), 2), round(float(hi), 2)]
+                 for o, c, lo, hi in zip(v['Open'], v['Close'], v['Low'], v['High'])],
+        'trend': r2(v['TrendMA']), 'upper': r2(v['UpperBand']), 'lower': r2(v['LowerBand']),
+        'floor': r2(floor[idx]), 'stage': stage[idx].tolist(), 'sq': v['SQ'].astype(int).tolist(),
+        'equity': r2((res['cum_strat'] - 1) * 100), 'bnh': r2((res['cum_mkt'] - 1) * 100),
+        'ddS': r2(res['dd_s']), 'ddM': r2(res['dd_m']),
+        'trades': trades, 'stats': stats,
+        'last': {'date': v.index[-1].strftime('%Y-%m-%d'), 'close': round(float(last['Close']), 2),
+                 'trend': round(float(last['TrendMA']), 2), 'upper': round(float(last['UpperBand']), 2),
+                 'lower': round(float(last['LowerBand']), 2), 'floor': r2([floor[idx[-1]]])[0],
+                 'stage': int(stage[idx[-1]]), 'sq': int(last['SQ'])},
+    }
+
+
+def write_html_report(data, out_path):
+    """Fills scripts/report_template.html with the report data and writes a self-contained HTML file."""
+    tpl_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'report_template.html')
+    with open(tpl_path, encoding='utf-8') as f:
+        tpl = f.read()
+    m = data['meta']
+    title = html.escape(f"{m['modeLabel']} {data['symbol']} 回測")
+    payload = json.dumps(data, ensure_ascii=False, separators=(',', ':')).replace('</', '<\\/')
+    page = tpl.replace('__TITLE__', title).replace('/*__DATA__*/null', payload)
+    if not page.lstrip().lower().startswith('<!doctype'):
+        page = ('<!doctype html>\n<html lang="zh-Hant">\n<head>\n<meta charset="utf-8">\n'
+                '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
+                '</head>\n<body>\n' + page + '\n</body>\n</html>\n')
+    with open(out_path, 'w', encoding='utf-8') as f:
+        f.write(page)
+    return out_path
+
+
 def main():
     parser = argparse.ArgumentParser(description="Adaptive Ehlers Percentile Reclaim (Plan B 1.0x) Engine")
     parser.add_argument("--symbol", type=str, default="^TWII", help="Ticker symbol (default: ^TWII)")
@@ -314,7 +434,9 @@ def main():
     parser.add_argument("--end", type=str, default="2026-10-08", help="End date YYYY-MM-DD")
     parser.add_argument("--mode", type=str, default="plan_b_1x", choices=["plan_b_1x", "plan_a_1x", "plan_b_12x", "compare"],
                         help="Strategy mode: plan_b_1x (default), plan_a_1x, plan_b_12x, compare")
-    parser.add_argument("--out", type=str, default=None, help="Output HTML file path")
+    parser.add_argument("--out", type=str, default=None,
+                        help="Output HTML file path (default: <symbol>_ehlers_<mode>_<start>_<end>.html in the current directory)")
+    parser.add_argument("--no-html", action="store_true", help="Print the console summary only, skip the HTML report")
     args = parser.parse_args()
     
     print(f"Fetching {args.symbol} data with warmup...")
@@ -352,6 +474,20 @@ def main():
     print(f"  Plan B (1.2x Boost) : Return {res_b_12x['tot_strat']:+7.2f}% | MaxDD {res_b_12x['max_dd_s']:6.2f}% | Calmar {res_b_12x['calmar_s']:.2f}")
     print(f"  Buy & Hold Benchmark: Return {res_b_1x['tot_mkt']:+7.2f}% | MaxDD {res_b_1x['max_dd_m']:6.2f}% | Calmar {res_b_1x['tot_mkt']/abs(res_b_1x['max_dd_m']):.2f}")
     print("=========================================================================")
+
+    if not args.no_html:
+        report_mode = 'plan_b_1x' if args.mode == 'compare' else args.mode
+        res_report = {'plan_b_1x': res_b_1x, 'plan_a_1x': res_a_1x, 'plan_b_12x': res_b_12x}[report_mode]
+        out = args.out or "{}_ehlers_{}_{}_{}.html".format(
+            "".join(ch if ch.isalnum() else "_" for ch in args.symbol).strip("_"),
+            report_mode, args.start.replace("-", ""), args.end.replace("-", ""))
+        data = build_report_data(df_calc, res_report, args.symbol, args.start, args.end, report_mode)
+        path = write_html_report(data, out)
+        last = data['last']
+        state = (f"HOLDING, exit floor {last['floor']:,.2f} (stage {last['stage']})"
+                 if last['floor'] is not None else "FLAT")
+        print(f"[{MODES[report_mode]['en']}] Last bar {last['date']} close {last['close']:,.2f} -> {state}")
+        print(f"HTML report written: {os.path.abspath(path)}")
 
 
 if __name__ == '__main__':

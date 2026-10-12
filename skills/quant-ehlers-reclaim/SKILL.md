@@ -51,6 +51,7 @@ The core architecture combines:
 ## Files in this Skill
 
 - **CLI Engine & Dashboard Generator**: [`scripts/ehlers_reclaim_engine.py`](scripts/ehlers_reclaim_engine.py)
+- **HTML Report Template** (filled by the engine): [`scripts/report_template.html`](scripts/report_template.html)
 - **TradingView Pine Script v5 / v6 Strategy**: [`scripts/ehlers_reclaim_strategy.pine`](scripts/ehlers_reclaim_strategy.pine)
 - **Mathematical Specification**: [`references/documentation.md`](references/documentation.md)
 
@@ -61,7 +62,7 @@ The core architecture combines:
 Use this skill whenever the user asks for:
 - "方案 B 1.0x", "Ehlers 破底翻策略", "Adaptive Ehlers Filtered Percentile"
 - Backtesting or running the Adaptive Ehlers Reclaim strategy on any ticker (e.g. `^TWII`, `0050.TW`, `SPY`, `QQQ`, `SMH`, `TSM`)
-- Generating interactive Plotly HTML dashboards or trade audit logs
+- Generating the interactive HTML backtest report (K線 + 通道 + 買賣點 + 權益/回撤 + 交易明細 + 目前出場線) or trade audit logs
 - Exporting or integrating the TradingView Pine Script strategy
 
 ### 1. Run Quantitative Backtest via CLI
@@ -85,4 +86,19 @@ python skills/quant-ehlers-reclaim/scripts/ehlers_reclaim_engine.py --symbol QQQ
   - `plan_b_1x` (Recommended / 方案 B 1.0x 純現貨): Dual-stage mid-lower trailing exit.
   - `plan_a_1x` (方案 A 1.0x 現貨): LowerBand 1.5% hysteresis buffer stop.
   - `plan_b_12x` (方案 B 1.20x 微槓桿): Bull boost on Green regime.
-- `--out`: Custom output path for HTML dashboard.
+- `--out`: Custom output path for the HTML report (default: `<symbol>_ehlers_<mode>_<start>_<end>.html` in the current directory).
+- `--no-html`: Print the console summary only.
+
+### 2. Interactive HTML Report
+
+Every run (unless `--no-html`) writes one self-contained HTML file for the selected `--mode` (`compare` reports Plan B 1.0x).
+It loads ECharts 5.5.0 from cdnjs, so it needs internet access when opened; all data is embedded in the page. It contains:
+
+- **KPI strip**: total return vs Buy & Hold, alpha, CAGR, max drawdown, Calmar, Sharpe/Sortino, win rate, profit factor/payoff.
+- **Current position card**: holding/flat on the last bar, the active exit floor (stage 1 = LowerBand stop, stage 2 = 0.6×TrendMA + 0.4×LowerBand take-profit; Plan A = LowerBand×0.985), distance to it, and the bands.
+- **Three synced panels** (shared zoom + crosshair tooltip): Taiwan-convention candlesticks (red up / green down) with TrendMA, Upper/Lower bands, the exit floor while held, held-period shading and buy/sell markers at the execution bar; cumulative return vs Buy & Hold; drawdown. Range buttons 3M / 6M / 1Y / All.
+- **Trade ledger**: click a row to zoom the chart to that trade. `bars` is calendar days.
+- **Caveats**: trade #1 is the assumed starting position (the engine starts fully invested), no costs are deducted, and the default parameters were tuned on ^TWII.
+- Light / dark theme follows the viewer.
+
+When presenting results, also relay the caveats above; the console numbers do not deduct trading costs.
