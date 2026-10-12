@@ -158,7 +158,7 @@ footer { color: var(--muted); font-size: 12px }
 
   <section class="notes" aria-label="解讀注意事項">
     <div class="note"><h3>從空手開始</h3><p>回測起始日沒有部位，要等策略自己發出第一個破底翻買進訊號才進場；暖機期間就已持有的部位不會帶進來，所以沒有起始偏誤。起始到第一次買進之間報酬為 0。</p></div>
-    <div class="note"><h3>未扣交易成本</h3><p id="n-cost"></p></div>
+    <div class="note"><h3 id="n-cost-h">交易成本</h3><p id="n-cost"></p></div>
     <div class="note"><h3>參數在同一段資料上調校</h3><p id="n-params"></p></div>
     <div class="note"><h3>出場規則</h3><p id="n-exit"></p></div>
   </section>
@@ -180,9 +180,15 @@ const M = D.meta;
 $("#m-eyebrow").textContent = `Adaptive Ehlers Percentile Reclaim · ${M.modeEn}`;
 $("#m-h1").textContent = `${M.modeLabel} · ${M.symbol} 回測`;
 $("#m-symbol").textContent = M.symbol;
-$("#m-pos").textContent = `${M.leverage}、未計成本`;
+$("#m-pos").textContent = M.costPct > 0 ? `${M.leverage}、已扣來回成本 ${fmt(M.costPct)}%` : `${M.leverage}、未計成本`;
 $("#m-params").textContent = M.params;
-$("#n-cost").textContent = `手續費、稅與滑價都沒有扣除。${D.trades.length} 次進出若以每次來回約 0.3–0.4% 估算，報酬會少約 ${fmt(D.trades.length * 0.3, 0)}–${fmt(D.trades.length * 0.4, 0)} 個百分點。`;
+if (M.costPct > 0) {
+  $("#n-cost-h").textContent = "已扣交易成本";
+  $("#n-cost").textContent = `每次進出（買＋賣）扣 ${fmt(M.costPct)}%，包含手續費、證交稅與滑價，買進日與賣出日各扣一半；交易明細的報酬也是扣除後的淨值。${D.trades.length} 筆交易合計約 ${fmt(D.trades.length * M.costPct, 1)}%（未複利）。買進持有不扣成本。`;
+} else {
+  $("#n-cost-h").textContent = "未扣交易成本";
+  $("#n-cost").textContent = `這次以 --cost 0 執行，手續費、稅與滑價都沒有扣除。${D.trades.length} 次進出若以每次來回約 0.3% 估算，報酬會少約 ${fmt(D.trades.length * 0.3, 0)} 個百分點以上（複利後更多）。`;
+}
 $("#n-params").textContent = M.symbol === "^TWII" ? "預設的「黃金參數」是在 ^TWII 歷史上最佳化的，與這段回測資料重疊，因此不是樣本外測試，未來表現應打折看待。" : `預設的「黃金參數」是在 ^TWII 上最佳化的，套用到 ${M.symbol} 時沒有重新調校；結果好壞都不代表參數適合這個標的。`;
 $("#n-exit").textContent = M.exitRule;
 

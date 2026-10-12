@@ -112,8 +112,11 @@ def run_ehlers_percentile(df, ma_min=3, ma_max=30, vol_len=12,
 
 def backtest_plan_b_1x(df_calc, start_date='2023-01-01', end_date='2026-10-08',
                        exit_mode='dual_stage_buffered', pos_boost=1.0,
-                       exec_timing='next_open', exit_weight=0.6):
+                       exec_timing='next_open', exit_weight=0.6, cost_rt=0.0):
     """
+    cost_rt: round-trip trading cost as a fraction (e.g. 0.003 = 0.3%) covering commission,
+    tax and slippage. Half is charged on the entry day and half on the exit day, scaled by
+    the position size; trade returns in the ledger are net of it. Buy & Hold is left gross.
     Executes Plan B (1.0x Pure Spot):
       - Entry: Purple bar drops below LowerBand, then 1st Purple bar closes above LowerBand.
       - Exit: If reached UpperBand (Green bull market), exit when Close < (TrendMA * exit_weight + LowerBand * (1 - exit_weight)).
@@ -185,6 +188,7 @@ def backtest_plan_b_1x(df_calc, start_date='2023-01-01', end_date='2026-10-08',
     # Start flat: no position until the strategy itself fires a buy signal on or after the
     # bar before start_date (executed at the next open). A position the signal state machine
     # already held during the warm-up period is NOT inherited, so there is no start-state bias.
+    half_cost = cost_rt / 2.0
     curr_pos = 0.0
     entry_price = 0.0
     entry_date = None
@@ -214,8 +218,8 @@ def backtest_plan_b_1x(df_calc, start_date='2023-01-01', end_date='2026-10-08',
         if target_pos != curr_pos:
             if curr_pos == 1.0:
                 ret_overnight = (open_p - prev_close) / prev_close * active_leverage
-                day_pnl += ret_overnight
-                t_ret = (open_p - entry_price) / entry_price
+                day_pnl += ret_overnight - half_cost * active_leverage
+                t_ret = (open_p - entry_price) / entry_price - cost_rt
                 trades.append({
                     'type': 'LONG',
                     'entry_date': entry_date, 'entry_price': entry_price,
@@ -227,7 +231,7 @@ def backtest_plan_b_1x(df_calc, start_date='2023-01-01', end_date='2026-10-08',
                 entry_price = open_p
                 entry_date = cur_date
                 ret_intraday = (close_p - open_p) / open_p * active_leverage
-                day_pnl += ret_intraday
+                day_pnl += ret_intraday - half_cost * active_leverage
             else:
                 entry_price = 0.0
                 entry_date = None
@@ -241,7 +245,7 @@ def backtest_plan_b_1x(df_calc, start_date='2023-01-01', end_date='2026-10-08',
         
     if curr_pos == 1.0 and entry_date is not None:
         last_close = closes[end_idx]
-        t_ret = (last_close - entry_price) / entry_price
+        t_ret = (last_close - entry_price) / entry_price - half_cost  # exit cost not yet paid
         trades.append({
             'type': 'LONG',
             'entry_date': entry_date, 'entry_price': entry_price,
@@ -322,6 +326,7 @@ def backtest_plan_b_1x(df_calc, start_date='2023-01-01', end_date='2026-10-08',
         'calmar_s': calmar_s,
         'calmar_m': calmar_m,
         'trades_count': len(tdf),
+        'cost_rt': cost_rt,
         'trades': tdf,
         'cum_strat': cum_strat,
         'cum_mkt': cum_mkt,
@@ -423,6 +428,7 @@ def build_report_data(df_calc, res, symbol, start_date, end_date, mode, exit_wei
         'symbol': symbol, 'start': start_date, 'end': end_date,
         'meta': {'symbol': symbol, 'mode': mode, 'modeLabel': cfg['label'], 'modeEn': cfg['en'],
                  'leverage': cfg['leverage'], 'twoStage': cfg['two_stage'],
+                 'costPct': round(float(res['cost_rt']) * 100, 4),
                  'floorName': '下軌 −1.5%' if cfg['exit_mode'] == 'lower_band_buffer' else '下軌',
                  'exitRule': exit_rule,
                  'params': f'vol 12、Ehlers 9 / 12、百分位 40 根 75%、上軌 0.7、下軌 0.8、出場權重 {exit_weight:g}'},
@@ -468,6 +474,8 @@ def main():
                         help="Strategy mode: plan_b_1x (default), plan_a_1x, plan_b_12x, compare")
     parser.add_argument("--out", type=str, default=None,
                         help="Output HTML file path (default: <symbol>_ehlers_<mode>_<start>_<end>.html in the current directory)")
+    parser.add_argument("--cost", type=float, default=0.3,
+                        help="Round-trip trading cost in percent (commission + tax + slippage), default 0.3; 0 = gross")
     parser.add_argument("--no-html", action="store_true", help="Print the console summary only, skip the HTML report")
     args = parser.parse_args()
     
@@ -484,13 +492,14 @@ def main():
     df_calc = run_ehlers_percentile(df)
     
     # Run backtest
-    res_b_1x = backtest_plan_b_1x(df_calc, start_date=args.start, end_date=args.end, exit_mode='dual_stage_buffered', pos_boost=1.0)
-    res_a_1x = backtest_plan_b_1x(df_calc, start_date=args.start, end_date=args.end, exit_mode='lower_band_buffer', pos_boost=1.0)
-    res_b_12x = backtest_plan_b_1x(df_calc, start_date=args.start, end_date=args.end, exit_mode='dual_stage_buffered', pos_boost=1.20)
+    cost_rt = args.cost / 100.0
+    res_b_1x = backtest_plan_b_1x(df_calc, start_date=args.start, end_date=args.end, exit_mode='dual_stage_buffered', pos_boost=1.0, cost_rt=cost_rt)
+    res_a_1x = backtest_plan_b_1x(df_calc, start_date=args.start, end_date=args.end, exit_mode='lower_band_buffer', pos_boost=1.0, cost_rt=cost_rt)
+    res_b_12x = backtest_plan_b_1x(df_calc, start_date=args.start, end_date=args.end, exit_mode='dual_stage_buffered', pos_boost=1.20, cost_rt=cost_rt)
     
     print("=========================================================================")
     print(f"  ADAPTIVE EHLERS RECLAIM STRATEGY ENGINE — {args.symbol}")
-    print(f"  Period: {args.start} ~ {args.end}")
+    print(f"  Period: {args.start} ~ {args.end} | Round-trip cost: {args.cost:g}% (B&H gross)")
     print("=========================================================================")
     print(f"[Plan B (1.0x Pure Spot / Dual-Stage Exit)]")
     print(f"  Total Return: {res_b_1x['tot_strat']:+7.2f}% (B&H: {res_b_1x['tot_mkt']:+7.2f}%) | Excess: {res_b_1x['excess_ret']:+7.2f}%")

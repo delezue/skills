@@ -50,32 +50,34 @@ $$\text{LowerBand}_t = \text{TrendMA}_t - 0.7 \cdot \text{PctDist}_t$$
 
 ## 3. Backtest Performance Summary (^TWII Golden Parameters 1.0x Pure Spot)
 
-All backtests start flat and enter only on the strategy's own first buy signal; no trading costs deducted.
+All backtests start flat and enter only on the strategy's own first buy signal. Strategy figures are net of a 0.3% round-trip cost (`--cost 0.3`); Buy & Hold is gross.
 
 ### Past 3 Years (2023-10-01 ~ 2026-10-08)
-| Metric | Plan B (1.0x Golden Params) | Buy & Hold Benchmark |
+| Metric | Plan B (1.0x, 0.3% cost) | Buy & Hold Benchmark |
 | :--- | :---: | :---: |
-| Total Return | **+220.42%** | +201.54% |
-| Excess Return (total-return difference) | **+18.88%** | 0.00% |
-| Alpha (annualised Jensen, β = 0.57, t = 2.76) | **+18.44%** | 0.00% |
-| CAGR | **+47.10%** | +44.17% |
-| Max Drawdown | **-13.55%** | **-28.69%** |
-| Calmar Ratio (CAGR/MDD) | **3.48** | 1.54 |
-| Sharpe Ratio | **2.36** | 1.84 |
-| Win Rate | **57.9%** | — |
-| Profit Factor | **8.12** | — |
+| Total Return | **+203.11%** (gross +220.42%) | +201.54% |
+| Excess Return (total-return difference) | **+1.57%** | 0.00% |
+| Alpha (annualised Jensen, β = 0.57, t = 2.47) | **+16.47%** | 0.00% |
+| CAGR | **+44.42%** | +44.17% |
+| Max Drawdown | **-16.12%** | **-28.69%** |
+| Calmar Ratio (CAGR/MDD) | **2.76** | 1.54 |
+| Sharpe Ratio | **2.25** | 1.84 |
+| Win Rate | **52.6%** | — |
+| Profit Factor | **6.97** | — |
 | Trades Count | **19 Trades** | 1 Trade |
 
 ### Full Period Cross-Validation (2023-01-01 ~ 2026-10-08)
-| Metric | Plan B (1.0x Golden Params) | Buy & Hold Benchmark |
+| Metric | Plan B (1.0x, 0.3% cost) | Buy & Hold Benchmark |
 | :--- | :---: | :---: |
-| Total Return | **+231.95%** | +248.81% |
-| Excess Return (total-return difference) | **-16.86%** | 0.00% |
-| Alpha (annualised Jensen, β = 0.55, t = 2.50) | **+14.04%** | 0.00% |
-| CAGR | **+37.57%** | +39.39% |
-| Max Drawdown | **-13.55%** | **-28.69%** |
-| Calmar Ratio (CAGR/MDD) | **2.77** | 1.37 |
-| Sharpe Ratio | **2.13** | 1.67 |
+| Total Return | **+210.26%** (gross +231.95%) | +248.81% |
+| Excess Return (total-return difference) | **-38.55%** | 0.00% |
+| Alpha (annualised Jensen, β = 0.56, t = 2.16) | **+12.11%** | 0.00% |
+| CAGR | **+35.12%** | +39.39% |
+| Max Drawdown | **-16.12%** | **-28.69%** |
+| Calmar Ratio (CAGR/MDD) | **2.18** | 1.37 |
+| Sharpe Ratio | **2.01** | 1.67 |
+| Win Rate | **47.8%** | — |
+| Profit Factor | **6.01** | — |
 | Trades Count | **23 Trades** | 1 Trade |
 
 ### Metric Definitions
@@ -83,3 +85,4 @@ All backtests start flat and enter only on the strategy's own first buy signal; 
 - **Alpha (Jensen, annualised)**: OLS of daily strategy returns on daily benchmark returns, $r_s = \alpha + \beta\,r_m + \varepsilon$ (risk-free rate taken as 0); reported as $\alpha \times 252$. `alpha_t` is the t-statistic of the intercept; `beta` is the average market exposure.
 - **Calmar Ratio** = CAGR / |Max Drawdown|. (Earlier versions used total return / MDD, which grows with the length of the test window and is not comparable across periods.)
 - **Start state**: the backtest begins flat (`curr_pos = 0`). Earlier versions started fully invested on the first bar regardless of the signal, which added ~34.5 points of return on 2023-01-01 ~ 2026-10-08 (start-state bias).
+- **Trading cost** (`cost_rt`, CLI `--cost` in percent, default 0.3): round-trip cost covering commission, transaction tax and slippage. Half is deducted from the daily return on the entry day and half on the exit day (scaled by position size); ledger trade returns are net (an open trade has only paid the entry half). Buy & Hold is left gross.

@@ -27,34 +27,35 @@ The core architecture combines:
 
 ## Benchmark Performance on ^TWII (Golden Parameters / 零槓桿純現貨)
 
-> Backtests start **flat**: no position until the strategy fires its own first reclaim buy signal (positions held during the warm-up year are not inherited). No trading costs are deducted.
+> Backtests start **flat**: no position until the strategy fires its own first reclaim buy signal (positions held during the warm-up year are not inherited). Strategy figures are **net of a 0.3% round-trip trading cost** (`--cost`, default 0.3); Buy & Hold is gross.
 
 ### 1. 過去 3 年核心基準 (2023-10-01 ~ 2026-10-08)
-| Metric | Plan B (1.0x Golden Params) | Buy & Hold Benchmark | Note |
+| Metric | Plan B (1.0x, 0.3% cost) | Buy & Hold Benchmark | Note |
 | :--- | :---: | :---: | :--- |
-| **Total Return** | **+220.42%** | +201.54% | 超額報酬 +18.88 個百分點（總報酬相減，非 Alpha） |
-| **Alpha (annualised, Jensen)** | **+18.44%** (t = 2.76) | 0.00% | β = 0.57；日報酬對大盤迴歸的截距 ×252 |
-| **CAGR** | **+47.10%** | +44.17% | |
-| **Max Drawdown (MDD)** | **-13.55%** | -28.69% | 回撤深度約為大盤一半 |
-| **Calmar Ratio (CAGR/MDD)** | **3.48** | 1.54 | |
-| **Sharpe Ratio** | **2.36** | 1.84 | |
-| **Win Rate** | **57.9%** (11勝 / 8負) | — | |
-| **Profit Factor** | **8.12** | — | |
+| **Total Return** | **+203.11%** | +201.54% | 超額報酬 +1.57 個百分點；未扣成本為 +220.42% |
+| **Alpha (annualised, Jensen)** | **+16.47%** (t = 2.47) | 0.00% | β = 0.57；日報酬對大盤迴歸的截距 ×252 |
+| **CAGR** | **+44.42%** | +44.17% | |
+| **Max Drawdown (MDD)** | **-16.12%** | -28.69% | 回撤深度約為大盤 56% |
+| **Calmar Ratio (CAGR/MDD)** | **2.76** | 1.54 | |
+| **Sharpe Ratio** | **2.25** | 1.84 | |
+| **Win Rate** | **52.6%** (10勝 / 9負) | — | |
+| **Profit Factor** | **6.97** | — | |
 | **Trades Count** | **19 Trades** | 1 Trade | 年均約 6 筆 |
 
 ### 2. 全週期歷史跨期驗證 (2023-01-01 ~ 2026-10-08)
-| Metric | Plan B (1.0x Golden Params) | Buy & Hold Benchmark | Note |
+| Metric | Plan B (1.0x, 0.3% cost) | Buy & Hold Benchmark | Note |
 | :--- | :---: | :---: | :--- |
-| **Total Return** | **+231.95%** | +248.81% | 超額報酬 -16.86 個百分點：首次買進訊號在 2023-04-24，空手錯過 1–4 月漲幅 |
-| **Alpha (annualised, Jensen)** | **+14.04%** (t = 2.50) | 0.00% | β = 0.55 |
-| **CAGR** | **+37.57%** | +39.39% | |
-| **Max Drawdown (MDD)** | **-13.55%** | -28.69% | |
-| **Calmar Ratio (CAGR/MDD)** | **2.77** | 1.37 | |
-| **Sharpe Ratio** | **2.13** | 1.67 | |
-| **Win Rate** | **52.2%** (12勝 / 11負) | — | |
+| **Total Return** | **+210.26%** | +248.81% | 超額報酬 -38.55 個百分點；未扣成本為 +231.95%。首次買進訊號在 2023-04-24，空手錯過 1–4 月漲幅 |
+| **Alpha (annualised, Jensen)** | **+12.11%** (t = 2.16) | 0.00% | β = 0.56 |
+| **CAGR** | **+35.12%** | +39.39% | |
+| **Max Drawdown (MDD)** | **-16.12%** | -28.69% | |
+| **Calmar Ratio (CAGR/MDD)** | **2.18** | 1.37 | |
+| **Sharpe Ratio** | **2.01** | 1.67 | |
+| **Win Rate** | **47.8%** (11勝 / 12負) | — | |
+| **Profit Factor** | **6.01** | — | |
 | **Trades Count** | **23 Trades** | 1 Trade | |
 
-結果會隨起始日不同而變：2023-10-01 起始時策略剛好有訊號，報酬勝過大盤；2023-01-01 起始則因空手近 4 個月而落後大盤，但回撤仍只有大盤的一半。
+結果會隨起始日不同而變：2023-10-01 起始時策略剛好有訊號，扣成本後報酬約與大盤打平；2023-01-01 起始則因空手近 4 個月而落後大盤。兩者回撤都只有大盤約 56%。
 
 ---
 
@@ -97,6 +98,7 @@ python skills/quant-ehlers-reclaim/scripts/ehlers_reclaim_engine.py --symbol QQQ
   - `plan_a_1x` (方案 A 1.0x 現貨): LowerBand 1.5% hysteresis buffer stop.
   - `plan_b_12x` (方案 B 1.20x 微槓桿): Bull boost on Green regime.
 - `--out`: Custom output path for the HTML report (default: `<symbol>_ehlers_<mode>_<start>_<end>.html` in the current directory).
+- `--cost`: Round-trip trading cost in percent (commission + tax + slippage), default `0.3`. Half is charged on the entry day and half on the exit day; trade returns are net. `--cost 0` gives gross results. Buy & Hold is not charged.
 - `--no-html`: Print the console summary only.
 
 ### 2. Interactive HTML Report
@@ -108,7 +110,7 @@ It loads ECharts 5.5.0 from cdnjs, so it needs internet access when opened; all 
 - **Current position card**: holding/flat on the last bar, the active exit floor (stage 1 = LowerBand stop, stage 2 = 0.6×TrendMA + 0.4×LowerBand take-profit; Plan A = LowerBand×0.985), distance to it, and the bands.
 - **Three synced panels** (shared zoom + crosshair tooltip): Taiwan-convention candlesticks (red up / green down) with TrendMA, Upper/Lower bands, the exit floor while held, held-period shading and buy/sell markers at the execution bar; cumulative return vs Buy & Hold; drawdown. Range buttons 3M / 6M / 1Y / All.
 - **Trade ledger**: click a row to zoom the chart to that trade. `bars` is calendar days.
-- **Caveats**: the backtest starts flat and waits for the first real buy signal (return is 0 until then), no costs are deducted, and the default parameters were tuned on ^TWII.
+- **Caveats**: the backtest starts flat and waits for the first real buy signal (return is 0 until then), results are net of the `--cost` round-trip cost (Buy & Hold is gross), and the default parameters were tuned on ^TWII.
 - Light / dark theme follows the viewer.
 
-When presenting results, also relay the caveats above; the console numbers do not deduct trading costs.
+When presenting results, also relay the caveats above and state the `--cost` used.
