@@ -50,13 +50,15 @@ $$\text{LowerBand}_t = \text{TrendMA}_t - 0.7 \cdot \text{PctDist}_t$$
 
 ## 3. Backtest Performance Summary (^TWII Golden Parameters 1.0x Pure Spot)
 
+All backtests start flat and enter only on the strategy's own first buy signal; no trading costs deducted.
+
 ### Past 3 Years (2023-10-01 ~ 2026-10-08)
 | Metric | Plan B (1.0x Golden Params) | Buy & Hold Benchmark |
 | :--- | :---: | :---: |
-| Total Return | **+220.99%** | +201.54% |
-| Excess Return (total-return difference) | **+19.45%** | 0.00% |
-| Alpha (annualised Jensen, β = 0.57, t = 2.77) | **+18.50%** | 0.00% |
-| CAGR | **+47.19%** | +44.17% |
+| Total Return | **+220.42%** | +201.54% |
+| Excess Return (total-return difference) | **+18.88%** | 0.00% |
+| Alpha (annualised Jensen, β = 0.57, t = 2.76) | **+18.44%** | 0.00% |
+| CAGR | **+47.10%** | +44.17% |
 | Max Drawdown | **-13.55%** | **-28.69%** |
 | Calmar Ratio (CAGR/MDD) | **3.48** | 1.54 |
 | Sharpe Ratio | **2.36** | 1.84 |
@@ -67,14 +69,17 @@ $$\text{LowerBand}_t = \text{TrendMA}_t - 0.7 \cdot \text{PctDist}_t$$
 ### Full Period Cross-Validation (2023-01-01 ~ 2026-10-08)
 | Metric | Plan B (1.0x Golden Params) | Buy & Hold Benchmark |
 | :--- | :---: | :---: |
-| Total Return | **+266.44%** | +248.81% |
+| Total Return | **+231.95%** | +248.81% |
+| Excess Return (total-return difference) | **-16.86%** | 0.00% |
+| Alpha (annualised Jensen, β = 0.55, t = 2.50) | **+14.04%** | 0.00% |
+| CAGR | **+37.57%** | +39.39% |
 | Max Drawdown | **-13.55%** | **-28.69%** |
-| Alpha (annualised Jensen, β = 0.58, t = 2.83) | **+15.73%** | 0.00% |
-| CAGR | **+41.23%** | +39.39% |
-| Calmar Ratio (CAGR/MDD) | **3.04** | 1.37 |
-| Sharpe Ratio | **2.24** | 1.67 |
+| Calmar Ratio (CAGR/MDD) | **2.77** | 1.37 |
+| Sharpe Ratio | **2.13** | 1.67 |
+| Trades Count | **23 Trades** | 1 Trade |
 
 ### Metric Definitions
 - **Excess Return** = strategy total return − Buy & Hold total return (percentage points). This is *not* alpha.
 - **Alpha (Jensen, annualised)**: OLS of daily strategy returns on daily benchmark returns, $r_s = \alpha + \beta\,r_m + \varepsilon$ (risk-free rate taken as 0); reported as $\alpha \times 252$. `alpha_t` is the t-statistic of the intercept; `beta` is the average market exposure.
 - **Calmar Ratio** = CAGR / |Max Drawdown|. (Earlier versions used total return / MDD, which grows with the length of the test window and is not comparable across periods.)
+- **Start state**: the backtest begins flat (`curr_pos = 0`). Earlier versions started fully invested on the first bar regardless of the signal, which added ~34.5 points of return on 2023-01-01 ~ 2026-10-08 (start-state bias).

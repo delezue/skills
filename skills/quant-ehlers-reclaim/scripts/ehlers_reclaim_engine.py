@@ -182,9 +182,12 @@ def backtest_plan_b_1x(df_calc, start_date='2023-01-01', end_date='2026-10-08',
                 in_pos = False
                 had_breakdown = True
                 
-    curr_pos = 1.0
-    entry_price = opens[start_idx] if exec_timing == 'next_open' else closes[start_idx - 1]
-    entry_date = dates[start_idx]
+    # Start flat: no position until the strategy itself fires a buy signal on or after the
+    # bar before start_date (executed at the next open). A position the signal state machine
+    # already held during the warm-up period is NOT inherited, so there is no start-state bias.
+    curr_pos = 0.0
+    entry_price = 0.0
+    entry_date = None
     
     trades = []
     daily_strat_ret = []
@@ -338,11 +341,13 @@ MODES = {
 }
 
 
-def replay_exit_floor(df_calc, exit_mode='dual_stage_buffered', exit_weight=0.6):
+def replay_exit_floor(df_calc, exit_mode='dual_stage_buffered', exit_weight=0.6, first_bar=0):
     """
     Re-runs the backtest's signal state machine to recover, for every bar, the exit floor
     that was active while a position was held (NaN when flat) and its stage (0 flat, 1, 2).
-    Must mirror backtest_plan_b_1x's entry/exit rules exactly.
+    Must mirror backtest_plan_b_1x's entry/exit rules exactly. Positions whose entry signal
+    fired before `first_bar` (the bar before the backtest start) are ignored, because the
+    backtest starts flat and never inherits them.
     """
     c = df_calc['Close'].values
     lb = df_calc['LowerBand'].values
@@ -353,12 +358,16 @@ def replay_exit_floor(df_calc, exit_mode='dual_stage_buffered', exit_weight=0.6)
     floor = np.full(n, np.nan)
     stage = np.zeros(n, dtype=int)
     had_breakdown = in_pos = reached_upper = False
+    entry_t = -1
+    episode = np.full(n, -1)  # bar index of the entry signal for each held bar
     for t in range(n):
         if not in_pos:
             if col[t] == 'PURPLE' and c[t] < lb[t]:
                 had_breakdown = True
             if had_breakdown and col[t] == 'PURPLE' and c[t] > lb[t]:
                 in_pos, had_breakdown, reached_upper = True, False, False
+                entry_t = t
+                episode[t] = t
                 floor[t] = lb[t] * 0.985 if exit_mode == 'lower_band_buffer' else lb[t]
                 stage[t] = 1
         else:
@@ -371,18 +380,22 @@ def replay_exit_floor(df_calc, exit_mode='dual_stage_buffered', exit_weight=0.6)
             else:
                 f = lb[t]
             floor[t] = f
+            episode[t] = entry_t
             stage[t] = 2 if (exit_mode == 'dual_stage_buffered' and reached_upper) else 1
             if c[t] < f:
                 in_pos, had_breakdown = False, True
+    # the backtest only holds positions entered on a signal at or after first_bar
+    inherited = (episode >= 0) & (episode < first_bar)
+    floor[inherited], stage[inherited] = np.nan, 0
     return floor, stage
 
 
 def build_report_data(df_calc, res, symbol, start_date, end_date, mode, exit_weight=0.6):
     """Collects everything the HTML report needs into one JSON-serialisable dict."""
     cfg = MODES[mode]
-    floor, stage = replay_exit_floor(df_calc, cfg['exit_mode'], exit_weight)
     mask = (df_calc.index >= start_date) & (df_calc.index <= end_date)
     idx = np.where(mask)[0]
+    floor, stage = replay_exit_floor(df_calc, cfg['exit_mode'], exit_weight, first_bar=idx[0] - 1)
     v = df_calc.iloc[idx]
 
     def r2(a):

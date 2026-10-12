@@ -27,28 +27,34 @@ The core architecture combines:
 
 ## Benchmark Performance on ^TWII (Golden Parameters / 零槓桿純現貨)
 
+> Backtests start **flat**: no position until the strategy fires its own first reclaim buy signal (positions held during the warm-up year are not inherited). No trading costs are deducted.
+
 ### 1. 過去 3 年核心基準 (2023-10-01 ~ 2026-10-08)
-| Metric | Plan B (1.0x Golden Params) | Buy & Hold Benchmark | Quantitative Advantage |
+| Metric | Plan B (1.0x Golden Params) | Buy & Hold Benchmark | Note |
 | :--- | :---: | :---: | :--- |
-| **Total Return** | **+220.99%** | +201.54% | 總報酬多 +19.45 個百分點（超額報酬，非 Alpha） |
-| **Alpha (annualised, Jensen)** | **+18.50%** (t = 2.77) | 0.00% | β = 0.57；日報酬對大盤迴歸的截距 ×252 |
-| **Max Drawdown (MDD)** | **-13.55%** | **-28.69%** | **回撤深度降低 52.8%（極致風控）** |
-| **CAGR** | **+47.19%** | +44.17% | |
-| **Calmar Ratio (CAGR/MDD)** | **3.48** | 1.54 | 風險調整回報約為大盤 2.3 倍 |
-| **Sharpe Ratio** | **2.36** | 1.84 | 機構級頂級風險回報比 |
-| **Win Rate** | **57.9%** (11勝 / 8負) | — | 兼具高勝率與大賺小賠 |
-| **Profit Factor** | **8.12** | — | 法人對沖基金級水準 |
-| **Trades Count** | **19 Trades** | 1 Trade | 年均僅約 6 筆交易，摩擦成本趨近於零 |
+| **Total Return** | **+220.42%** | +201.54% | 超額報酬 +18.88 個百分點（總報酬相減，非 Alpha） |
+| **Alpha (annualised, Jensen)** | **+18.44%** (t = 2.76) | 0.00% | β = 0.57；日報酬對大盤迴歸的截距 ×252 |
+| **CAGR** | **+47.10%** | +44.17% | |
+| **Max Drawdown (MDD)** | **-13.55%** | -28.69% | 回撤深度約為大盤一半 |
+| **Calmar Ratio (CAGR/MDD)** | **3.48** | 1.54 | |
+| **Sharpe Ratio** | **2.36** | 1.84 | |
+| **Win Rate** | **57.9%** (11勝 / 8負) | — | |
+| **Profit Factor** | **8.12** | — | |
+| **Trades Count** | **19 Trades** | 1 Trade | 年均約 6 筆 |
 
 ### 2. 全週期歷史跨期驗證 (2023-01-01 ~ 2026-10-08)
-| Metric | Plan B (1.0x Golden Params) | Buy & Hold Benchmark | Quantitative Advantage |
+| Metric | Plan B (1.0x Golden Params) | Buy & Hold Benchmark | Note |
 | :--- | :---: | :---: | :--- |
-| **Total Return** | **+266.44%** | +248.81% | 總報酬多 +17.63 個百分點（超額報酬，非 Alpha） |
-| **Alpha (annualised, Jensen)** | **+15.73%** (t = 2.83) | 0.00% | β = 0.58 |
-| **Max Drawdown (MDD)** | **-13.55%** | **-28.69%** | 深度腰斬，避開所有千點急跌 |
-| **CAGR** | **+41.23%** | +39.39% | |
-| **Calmar Ratio (CAGR/MDD)** | **3.04** | 1.37 | |
-| **Sharpe Ratio** | **2.24** | 1.67 | 資金成長平滑穩健 |
+| **Total Return** | **+231.95%** | +248.81% | 超額報酬 -16.86 個百分點：首次買進訊號在 2023-04-24，空手錯過 1–4 月漲幅 |
+| **Alpha (annualised, Jensen)** | **+14.04%** (t = 2.50) | 0.00% | β = 0.55 |
+| **CAGR** | **+37.57%** | +39.39% | |
+| **Max Drawdown (MDD)** | **-13.55%** | -28.69% | |
+| **Calmar Ratio (CAGR/MDD)** | **2.77** | 1.37 | |
+| **Sharpe Ratio** | **2.13** | 1.67 | |
+| **Win Rate** | **52.2%** (12勝 / 11負) | — | |
+| **Trades Count** | **23 Trades** | 1 Trade | |
+
+結果會隨起始日不同而變：2023-10-01 起始時策略剛好有訊號，報酬勝過大盤；2023-01-01 起始則因空手近 4 個月而落後大盤，但回撤仍只有大盤的一半。
 
 ---
 
@@ -102,7 +108,7 @@ It loads ECharts 5.5.0 from cdnjs, so it needs internet access when opened; all 
 - **Current position card**: holding/flat on the last bar, the active exit floor (stage 1 = LowerBand stop, stage 2 = 0.6×TrendMA + 0.4×LowerBand take-profit; Plan A = LowerBand×0.985), distance to it, and the bands.
 - **Three synced panels** (shared zoom + crosshair tooltip): Taiwan-convention candlesticks (red up / green down) with TrendMA, Upper/Lower bands, the exit floor while held, held-period shading and buy/sell markers at the execution bar; cumulative return vs Buy & Hold; drawdown. Range buttons 3M / 6M / 1Y / All.
 - **Trade ledger**: click a row to zoom the chart to that trade. `bars` is calendar days.
-- **Caveats**: trade #1 is the assumed starting position (the engine starts fully invested), no costs are deducted, and the default parameters were tuned on ^TWII.
+- **Caveats**: the backtest starts flat and waits for the first real buy signal (return is 0 until then), no costs are deducted, and the default parameters were tuned on ^TWII.
 - Light / dark theme follows the viewer.
 
 When presenting results, also relay the caveats above; the console numbers do not deduct trading costs.

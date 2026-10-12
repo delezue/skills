@@ -157,7 +157,7 @@ footer { color: var(--muted); font-size: 12px }
   </section>
 
   <section class="notes" aria-label="解讀注意事項">
-    <div class="note"><h3>第 1 筆是起始假設</h3><p>程式在回測起始日就設定為持有，所以 2023-01-03 那筆不是真正的破底翻訊號，部分超額報酬來自這個起點。</p></div>
+    <div class="note"><h3>從空手開始</h3><p>回測起始日沒有部位，要等策略自己發出第一個破底翻買進訊號才進場；暖機期間就已持有的部位不會帶進來，所以沒有起始偏誤。起始到第一次買進之間報酬為 0。</p></div>
     <div class="note"><h3>未扣交易成本</h3><p id="n-cost"></p></div>
     <div class="note"><h3>參數在同一段資料上調校</h3><p id="n-params"></p></div>
     <div class="note"><h3>出場規則</h3><p id="n-exit"></p></div>
@@ -217,7 +217,7 @@ $("#status").innerHTML = `
 
 // Trade table
 $("#trades").innerHTML = D.trades.map((t, i) => `<tr data-i="${i}">
-  <td>${i + 1}</td><td>${t.entry}${i === 0 ? '<span class="tag">起始持有</span>' : ""}</td><td>${fmt(t.entryPx)}</td>
+  <td>${i + 1}</td><td>${t.entry}</td><td>${fmt(t.entryPx)}</td>
   <td>${t.exit}${t.open ? '<span class="tag">持有中</span>' : ""}</td><td>${fmt(t.exitPx)}</td>
   <td class="${cls(t.ret)}">${sgn(t.ret)}%</td><td>${t.days}</td></tr>`).join("");
 
@@ -234,7 +234,7 @@ function markers(c) {
   const buys = [], sells = [];
   D.trades.forEach((t, i) => {
     const bi = dIdx[t.entry];
-    if (bi != null) buys.push({ value: [t.entry, D.ohlc[bi][2]], t, i, kind: i === 0 ? "起始持有" : "買進" });
+    if (bi != null) buys.push({ value: [t.entry, D.ohlc[bi][2]], t, i, kind: "買進" });
     if (!t.open) { const si = dIdx[t.exit]; if (si != null) sells.push({ value: [t.exit, D.ohlc[si][3]], t, i, kind: "賣出" }); }
   });
   return { buys, sells };
