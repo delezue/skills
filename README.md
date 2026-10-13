@@ -29,5 +29,12 @@
   - 累積總報酬：**+266.44%** (大盤 +248.81%，零槓桿完勝大盤)
   - 最大回撤：**-13.55%**，卡瑪比率：**19.66** (大盤 8.67)
 
+### 3. [`skills/barchart-gamma-exposure`](skills/barchart-gamma-exposure/)
+- **名稱**：Barchart Gamma Exposure (GEX) 關鍵價位爬蟲
+- **標的**：美股個股 / ETF（TSM、NVDA、SPY、QQQ…）
+- **輸出**：日期、股價、漲跌幅、gamma flip point、put wall、call wall（文字或 `--json`）
+- **技術**：Barchart 有 AWS WAF JavaScript challenge，一般 HTTP 只拿到 202 空頁 → 以 Node + Playwright Chromium headless 讀取渲染後頁面。
+- **範例 (TSM, 10/12/26)**：股價 444.35 (-1.98%)、gamma flip 435.41、put wall 420.00、call wall 450.00
+
 ---
 *Created by [delezue](https://github.com/delezue)*
