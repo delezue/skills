@@ -43,5 +43,14 @@
 - **需求**：`pip install requests beautifulsoup4 fugle-marketdata`，Fugle API key 放環境變數 `FUGLE_API_KEY` 或 skill 資料夾的 `fugle_api_key.txt`（已 gitignore）。
 - **範例 (2026-10-16 11:00 盤中)**：加權 +0.68%；奔騰 +0.96%、復華 +0.94%、元大 +0.09%；前 10 大覆蓋率 48.6%～72.2%。
 
+### 5. [`skills/cnyes-fund-zlema-viewer`](skills/cnyes-fund-zlema-viewer/)
+- **名稱**：鉅亨基金 ZLEMA 看盤工具（含相對加權指數強弱）
+- **輸入**：鉅亨基金代號（`A36004`、`A1rqsDL`）或 fund.cnyes.com 基金網址
+- **資料**：anuefund NavHIS 一次抓成立以來全部淨值 → 本地 SQLite，之後只用 cnyes 分頁 API 補最新；自動對應 cnyes 代號與 anue FundID；去掉早期逐日曆天補值的假日資料。
+- **指標**：ZLEMA 13/21/55/200（SMA 起始，與 TradingView / pandas_ta 驗算一致）、距今年高點、ZLEMA13 乖離（歷史 P5/P95）、相對加權指數強弱（基金含息總報酬 vs 證交所發行量加權股價報酬指數 2020 年起；20/60/120/250 日超額報酬、Mansfield RS、60 日 β）。
+- **輸出**：ECharts 五層同步互動看盤 HTML（區間切換、均線開關、游標讀值、深淺色、台股紅漲綠跌）。
+- **需求**：`pip install requests`；本地資料庫 `data/fund_nav.db` 不上傳，第一次執行自動建立（大盤含息指數約 1 分鐘，之後每次數秒）。
+- **範例 (A36004 安聯台灣科技，2026-10-15)**：淨值 781.99（-6.60%）、距今年高點 -11.20%、ZLEMA13 乖離 -6.18%、相對大盤 250 日 +92.4pp、Mansfield RS +8.3%、β60 1.50。
+
 ---
 *Created by [delezue](https://github.com/delezue)*

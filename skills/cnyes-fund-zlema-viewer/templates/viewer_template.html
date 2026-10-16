@@ -1,0 +1,284 @@
+<title>{{TITLE}}</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* 版面：頂部基金名+KPI 列 → 工具列（區間/均線開關）→ 游標讀值列 → 四層同步圖（淨值+ZLEMA / 日漲跌 / 距今年高點 / ZLEMA13 乖離） */
+:root{
+  --bg:#f4f5f2; --panel:#ffffff; --panel-2:#eef0ec; --line:#dfe2dc; --grid:#e9ebe6;
+  --fg:#1d2420; --muted:#66706a; --faint:#9aa39d;
+  --accent:#1f6f5c;
+  --up:#d0312d; --down:#178a4c; --flat:#66706a;
+  --nav:#1d2420; --z13:#d9822b; --z21:#2b6cd9; --z55:#8a46c7; --z200:#7a8580;
+  --dd:#178a4c; --bias:#1f6f5c; --band:#d0312d; --rs:#b5651d;
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1312; --panel:#161b19; --panel-2:#1d2421; --line:#2a332f; --grid:#222a27;
+  --fg:#e3e8e5; --muted:#93a09a; --faint:#5f6b66; --accent:#4fc3a1;
+  --up:#ff5f57; --down:#35c77b; --flat:#93a09a;
+  --nav:#e3e8e5; --z13:#f0a04b; --z21:#5b9bff; --z55:#b98cf2; --z200:#8d9993;
+  --dd:#35c77b; --bias:#4fc3a1; --band:#ff5f57; --rs:#e8a15a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1312; --panel:#161b19; --panel-2:#1d2421; --line:#2a332f; --grid:#222a27;
+  --fg:#e3e8e5; --muted:#93a09a; --faint:#5f6b66; --accent:#4fc3a1;
+  --up:#ff5f57; --down:#35c77b; --flat:#93a09a;
+  --nav:#e3e8e5; --z13:#f0a04b; --z21:#5b9bff; --z55:#b98cf2; --z200:#8d9993;
+  --dd:#35c77b; --bias:#4fc3a1; --band:#ff5f57; --rs:#e8a15a; color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;line-height:1.45;
+  padding-block:20px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1400px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+a{color:var(--accent)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.up{color:var(--up)} .down{color:var(--down)} .flat{color:var(--flat)}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
+.idn .code{font-family:var(--mono);font-size:.78rem;color:var(--muted);letter-spacing:.08em}
+.idn h1{margin:2px 0 0;font-size:1.5rem;font-weight:800;text-wrap:balance}
+.idn .meta{color:var(--muted);font-size:.78rem;margin-top:4px}
+.quote{text-align:right}
+.quote .px{font-size:2rem;font-weight:800;line-height:1}
+.quote .chg{font-size:1rem;font-weight:700;margin-top:4px}
+.quote .dt{color:var(--muted);font-size:.75rem;margin-top:2px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.kpi{background:var(--panel);padding:10px 14px;min-width:0}
+.kpi .k{font-size:.7rem;color:var(--muted);letter-spacing:.06em}
+.kpi .v{font-size:1.25rem;font-weight:800;margin-top:2px}
+.kpi .s{font-size:.72rem;color:var(--muted);margin-top:1px}
+.bar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel)}
+.seg button{all:unset;cursor:pointer;padding:5px 11px;font-size:.8rem;color:var(--muted);border-right:1px solid var(--line)}
+.seg button:last-child{border-right:none}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--panel);font-weight:700}
+.seg button:focus-visible,.tog:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.togs{display:flex;flex-wrap:wrap;gap:6px}
+.tog{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--line);border-radius:999px;font-size:.78rem;background:var(--panel)}
+.tog i{width:14px;height:3px;border-radius:2px;display:block}
+.tog[aria-pressed="false"]{opacity:.4}
+.readout{display:flex;flex-wrap:wrap;gap:4px 18px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 14px;font-size:.8rem}
+.readout span b{font-weight:600;color:var(--muted);margin-right:5px}
+.chartbox{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 4px 0}
+#chart{width:100%;height:900px}
+@media(max-width:640px){#chart{height:760px}.quote{text-align:left}}
+footer{color:var(--faint);font-size:.74rem;line-height:1.6}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="idn">
+      <div class="code" id="code"></div>
+      <h1 id="name"></h1>
+      <div class="meta" id="meta"></div>
+    </div>
+    <div class="quote">
+      <div class="px num" id="px"></div>
+      <div class="chg num" id="chg"></div>
+      <div class="dt num" id="dt"></div>
+    </div>
+  </header>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="bar">
+    <div class="seg" id="ranges" role="group" aria-label="顯示區間"></div>
+    <div class="togs" id="togs"></div>
+  </div>
+
+  <div class="readout num" id="readout"></div>
+  <div class="chartbox"><div id="chart"></div></div>
+
+  <footer>
+    ZLEMA(n) = EMA<sub>n</sub>(2·淨值 − 淨值<sub>t−(n−1)/2</sub>)，比一般 EMA 延遲小。距今年高點 = 淨值 ÷ 當年 1 月 1 日起至當日的最高淨值 − 1。
+    乖離率 = 淨值 ÷ ZLEMA(13) − 1，虛線為全部歷史乖離率的第 5／95 百分位。<br>相對加權 = 基金含息總報酬 ÷ 臺灣證交所發行量加權股價報酬指數（含息，2020 年起），以目前顯示區間的第一天為 100：高於 100 代表這段期間跑贏大盤。配息級別在除息日把配息以當日淨值再投入。Mansfield RS = 相對比值 ÷ 其 250 日均線 − 1，大於 0 表示相對大盤的趨勢向上。β 為近 60 日日報酬對大盤的迴歸斜率。紅漲綠跌。資料來源：鉅亨網，<span id="gen"></span>。
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+<script>
+const D = {{DATA_JSON}};
+const S = D.series, N = S.date.length, L = N - 1;
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt = (v, d = 2) => v == null ? '—' : v.toLocaleString('en-US', {minimumFractionDigits: d, maximumFractionDigits: d});
+const sg = (v, d = 2, u = '%') => v == null ? '—' : (v > 0 ? '+' : '') + fmt(v, d) + u;
+const cls = v => v == null ? 'flat' : v > 0 ? 'up' : v < 0 ? 'down' : 'flat';
+
+/* ── 表頭 ── */
+$('code').textContent = D.info.code + (D.info.category ? ' · ' + D.info.category : '') + (D.info.risk ? ' · ' + D.info.risk : '');
+$('name').textContent = D.info.name || D.info.code;
+$('meta').innerHTML = [D.info.company, D.info.currency && ('計價 ' + D.info.currency), D.info.launch_date && ('成立 ' + D.info.launch_date),
+  `資料 ${S.date[0]} ~ ${S.date[L]}，${N.toLocaleString()} 筆`].filter(Boolean).join('　') +
+  `　<a href="${D.info.url}" target="_blank" rel="noopener">鉅亨基金頁</a>`;
+$('px').textContent = fmt(S.nav[L]);
+$('chg').innerHTML = `<span class="${cls(S.pct[L])}">${sg(S.pct[L])}</span>`;
+$('dt').textContent = '淨值日期 ' + S.date[L];
+$('gen').textContent = '產生於 ' + D.generated;
+
+/* 百分位（乖離率參考帶） */
+const pctl = (arr, p) => { const a = arr.filter(v => v != null).sort((x, y) => x - y); return a[Math.min(a.length - 1, Math.floor(p * a.length))]; };
+const B5 = pctl(S.bias13, .05), B95 = pctl(S.bias13, .95);
+const yr = S.date[L].slice(0, 4);
+let ytdStart = S.date.findIndex(d => d.startsWith(yr));
+const ytdRet = ytdStart > 0 ? (S.nav[L] / S.nav[ytdStart - 1] - 1) * 100 : null;
+const hiIdx = (() => { let k = ytdStart; for (let i = ytdStart; i <= L; i++) if (S.nav[i] >= S.nav[k]) k = i; return k; })();
+const above = [13, 21, 55, 200].filter(n => S['z' + n][L] != null && S.nav[L] > S['z' + n][L]).length;
+
+const kpis = [
+  ['距今年高點', sg(S.ddYtd[L]), cls(S.ddYtd[L]), `年高 ${fmt(S.ytdHigh[L])}（${S.date[hiIdx]}）`],
+  ['ZLEMA(13) 乖離', sg(S.bias13[L]), cls(S.bias13[L]), `歷史 P5 ${sg(B5)}／P95 ${sg(B95)}`],
+  ['今年以來報酬', sg(ytdRet), cls(ytdRet), `去年底 ${ytdStart > 0 ? fmt(S.nav[ytdStart - 1]) : '—'}`],
+  ['站上 ZLEMA', `${above} / 4`, above >= 3 ? 'up' : above <= 1 ? 'down' : 'flat',
+   [13, 21, 55, 200].map(n => `${n}${S.nav[L] > S['z' + n][L] ? '▲' : '▼'}`).join(' ')],
+  ['ZLEMA 13／21／55／200', `${fmt(S.z13[L])}`, 'flat', `${fmt(S.z21[L])}／${fmt(S.z55[L])}／${fmt(S.z200[L])}`],
+];
+const RS = D.rs, hasRS = !!(RS && S.rs);
+if (hasRS) {
+  const ex = w => RS.excess[w] ? RS.excess[w].excess : null;
+  const e60 = RS.excess[60];
+  kpis.splice(4, 0,
+    ['相對大盤 60 日', sg(ex(60), 2, 'pp'), cls(ex(60)),
+     e60 ? `基金 ${sg(e60.fund, 1)}／大盤 ${sg(e60.bench, 1)}` : '—'],
+    ['相對大盤 20／250 日', `${sg(ex(20), 1, '')}／${sg(ex(250), 1, '')}`, cls(ex(20)), 'pp，含息報酬差'],
+    ['Mansfield RS', sg(RS.mrs), cls(RS.mrs),
+     `β60 ${RS.beta60 == null ? '—' : fmt(RS.beta60)}${RS.rs_52w_high ? '・相對強度 52 週新高' : ''}`]);
+}
+$('kpis').innerHTML = kpis.map(([k, v, c, s]) =>
+  `<div class="kpi"><div class="k">${k}</div><div class="v num ${c}">${v}</div><div class="s num">${s}</div></div>`).join('');
+
+/* ── 讀值列 ── */
+function readout(i) {
+  if (i == null || i < 0 || i > L) i = L;
+  const it = [
+    ['日期', S.date[i]], ['淨值', fmt(S.nav[i])], ['漲跌', `<span class="${cls(S.pct[i])}">${sg(S.pct[i])}</span>`],
+    ['Z13', `<span style="color:var(--z13)">${fmt(S.z13[i])}</span>`], ['Z21', `<span style="color:var(--z21)">${fmt(S.z21[i])}</span>`],
+    ['Z55', `<span style="color:var(--z55)">${fmt(S.z55[i])}</span>`], ['Z200', `<span style="color:var(--z200)">${fmt(S.z200[i])}</span>`],
+    ['距年高', `<span class="${cls(S.ddYtd[i])}">${sg(S.ddYtd[i])}</span>`], ['乖離13', `<span class="${cls(S.bias13[i])}">${sg(S.bias13[i])}</span>`],
+  ];
+  if (hasRS) {
+    const v = rsBase && S.rs[i] ? S.rs[i] / rsBase * 100 : null;
+    it.push(['相對加權', `<span style="color:var(--rs)">${v == null ? '—' : fmt(v)}</span>`],
+            ['MRS', `<span class="${cls(S.mrs[i])}">${sg(S.mrs[i])}</span>`]);
+  }
+  $('readout').innerHTML = it.map(([k, v]) => `<span><b>${k}</b>${v}</span>`).join('');
+}
+let rsBase = null;
+readout(L);
+
+/* ── 區間 / 開關 ── */
+const RANGES = [['1M', 1], ['3M', 3], ['6M', 6], ['YTD', 'ytd'], ['1Y', 12], ['3Y', 36], ['5Y', 60], ['全部', 'all']];
+function startIdx(r) {
+  if (r === 'all') return 0;
+  if (r === 'ytd') return Math.max(0, ytdStart);
+  const d = new Date(S.date[L]); d.setMonth(d.getMonth() - r);
+  const s = d.toISOString().slice(0, 10);
+  const i = S.date.findIndex(x => x >= s); return i < 0 ? 0 : i;
+}
+const RMAP = Object.fromEntries(RANGES);
+let range = '1Y';
+try { const v = localStorage.getItem('fzv-range'); if (v in RMAP) range = v; } catch (e) {}
+$('ranges').innerHTML = RANGES.map(([l]) => `<button type="button" id="r-${l}" aria-pressed="${l === range}">${l}</button>`).join('');
+const LINES = [['z13', 'ZLEMA 13'], ['z21', 'ZLEMA 21'], ['z55', 'ZLEMA 55'], ['z200', 'ZLEMA 200']];
+const shown = {z13: true, z21: true, z55: true, z200: true};
+$('togs').innerHTML = LINES.map(([k, l]) => `<button type="button" class="tog" id="t-${k}" aria-pressed="true"><i style="background:var(--${k})"></i>${l}</button>`).join('');
+
+/* ── 圖 ── */
+const chart = echarts.init($('chart'), null, {renderer: 'canvas'});
+const narrow = () => window.innerWidth < 640;
+
+function option() {
+  const C = n => css(n), axisC = C('--muted'), gridC = C('--grid'), lineC = C('--line');
+  const g = hasRS
+    ? (narrow()
+      ? [{top: 10, height: '36%'}, {top: '41%', height: '7%'}, {top: '51%', height: '10%'}, {top: '64%', height: '10%'}, {top: '77%', height: '13%'}]
+      : [{top: 10, height: '42%'}, {top: '47%', height: '7%'}, {top: '57%', height: '9%'}, {top: '69%', height: '9%'}, {top: '81%', height: '12%'}])
+    : (narrow()
+      ? [{top: 10, height: '44%'}, {top: '50%', height: '9%'}, {top: '62%', height: '13%'}, {top: '78%', height: '12%'}]
+      : [{top: 10, height: '50%'}, {top: '56%', height: '8%'}, {top: '67%', height: '12%'}, {top: '82%', height: '11%'}]);
+  const LAST = g.length - 1, AX = g.map((_, i) => i);
+  const grid = g.map(x => ({...x, left: 58, right: 16}));
+  const xAxis = grid.map((_, i) => ({type: 'category', data: S.date, gridIndex: i, boundaryGap: false,
+    axisLine: {lineStyle: {color: lineC}}, axisTick: {show: false},
+    axisLabel: {show: i === LAST, color: axisC, fontSize: 10}, splitLine: {show: false},
+    axisPointer: {label: {show: i === LAST}}}));
+  const yLab = (name, f) => ({color: axisC, fontSize: 10, formatter: f});
+  const yAxis = [
+    {gridIndex: 0, scale: true, splitNumber: 5, axisLabel: yLab('', v => fmt(v, v >= 100 ? 0 : 2)), splitLine: {lineStyle: {color: gridC}}},
+    {gridIndex: 1, splitNumber: 2, axisLabel: yLab('', v => v + '%'), splitLine: {show: false}, name: '日漲跌', nameTextStyle: {color: axisC, fontSize: 10, align: 'left'}, nameGap: 4},
+    {gridIndex: 2, max: 0, splitNumber: 2, axisLabel: yLab('', v => v + '%'), splitLine: {lineStyle: {color: gridC}}, name: '距今年高點', nameTextStyle: {color: axisC, fontSize: 10, align: 'left'}, nameGap: 4},
+    {gridIndex: 3, splitNumber: 2, axisLabel: yLab('', v => v + '%'), splitLine: {lineStyle: {color: gridC}}, name: 'ZLEMA13 乖離', nameTextStyle: {color: axisC, fontSize: 10, align: 'left'}, nameGap: 4},
+    ...(hasRS ? [{gridIndex: 4, scale: true, splitNumber: 2, axisLabel: yLab('', v => fmt(v, 0)), splitLine: {lineStyle: {color: gridC}}, name: '相對加權（區間起點 = 100）', nameTextStyle: {color: axisC, fontSize: 10, align: 'left'}, nameGap: 4}] : []),
+  ].map(y => ({...y, axisLine: {show: false}, axisPointer: {label: {show: false}}}));
+  const ln = (k, w, z) => ({name: k, type: 'line', data: S[k], xAxisIndex: 0, yAxisIndex: 0, showSymbol: false, symbol: 'none',
+    lineStyle: {width: w, color: C('--' + k)}, itemStyle: {color: C('--' + k)}, z, sampling: 'lttb'});
+  const series = [
+    {...ln('nav', 1.8, 5), name: 'nav', lineStyle: {width: 1.8, color: C('--nav')},
+     areaStyle: {color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{offset: 0, color: C('--accent') + '33'}, {offset: 1, color: C('--accent') + '00'}])}},
+    ...LINES.filter(([k]) => shown[k]).map(([k], j) => ln(k, k === 'z13' ? 1.4 : 1.2, 4 - j)),
+    {name: 'pct', type: 'bar', data: S.pct.map(v => ({value: v, itemStyle: {color: v >= 0 ? C('--up') : C('--down')}})),
+     xAxisIndex: 1, yAxisIndex: 1, barMaxWidth: 6, large: true},
+    {name: 'dd', type: 'line', data: S.ddYtd, xAxisIndex: 2, yAxisIndex: 2, showSymbol: false, symbol: 'none', step: false,
+     lineStyle: {width: 1, color: C('--dd')}, areaStyle: {color: C('--dd') + '40'}},
+    {name: 'bias', type: 'line', data: S.bias13, xAxisIndex: 3, yAxisIndex: 3, showSymbol: false, symbol: 'none',
+     lineStyle: {width: 1.2, color: C('--bias')},
+     markLine: {silent: true, symbol: 'none', label: {color: axisC, fontSize: 9, formatter: p => p.name},
+       data: [
+         {yAxis: B95, name: 'P95 ' + sg(B95), label: {position: 'insideEndTop'}, lineStyle: {color: C('--band'), type: 'dashed', width: 1}},
+         {yAxis: B5, name: 'P5 ' + sg(B5), label: {position: 'insideEndBottom'}, lineStyle: {color: C('--down'), type: 'dashed', width: 1}},
+         {yAxis: 0, name: '', label: {show: false}, lineStyle: {color: C('--faint'), type: 'solid', width: 1}}]}},
+    ...(hasRS ? [{id: 'rs', name: 'rs', type: 'line', data: rebased(curStart()), xAxisIndex: 4, yAxisIndex: 4, showSymbol: false, symbol: 'none',
+      lineStyle: {width: 1.4, color: C('--rs')}, areaStyle: {color: C('--rs') + '1f', origin: 100},
+      markLine: {silent: true, symbol: 'none', label: {show: false}, data: [{yAxis: 100}], lineStyle: {color: C('--faint'), type: 'solid', width: 1}}}] : []),
+  ];
+  return {
+    animation: false, backgroundColor: 'transparent', textStyle: {fontFamily: css('--sans')},
+    grid, xAxis, yAxis, series,
+    axisPointer: {link: [{xAxisIndex: 'all'}], lineStyle: {color: C('--faint'), type: 'dashed'},
+      label: {backgroundColor: C('--panel-2'), color: C('--fg'), borderColor: lineC, borderWidth: 1, fontSize: 10}},
+    tooltip: {trigger: 'axis', showContent: false, axisPointer: {type: 'cross', crossStyle: {color: C('--faint')}}},
+    dataZoom: [
+      {type: 'inside', xAxisIndex: AX, startValue: startIdx(RMAP[range]), endValue: L, minValueSpan: 10},
+      {type: 'slider', xAxisIndex: AX, startValue: startIdx(RMAP[range]), endValue: L, bottom: 4, height: 18,
+       borderColor: lineC, fillerColor: C('--accent') + '22', handleStyle: {color: C('--panel'), borderColor: C('--accent')},
+       textStyle: {color: axisC, fontSize: 10}, dataBackground: {lineStyle: {color: C('--faint')}, areaStyle: {color: C('--panel-2')}},
+       moveHandleStyle: {color: C('--line')}, brushSelect: false}],
+  };
+}
+
+function curStart() {
+  try { const dz = chart.getOption().dataZoom[0]; if (dz && dz.startValue != null) return dz.startValue; } catch (e) {}
+  return startIdx(RMAP[range]);
+}
+function rebased(s) {
+  if (!hasRS) return [];
+  let b = null;
+  for (let i = s; i <= L && b == null; i++) if (S.rs[i]) b = S.rs[i];
+  rsBase = b;
+  return S.rs.map(v => v && b ? +(v / b * 100).toFixed(3) : null);
+}
+function render(keepZoom) {
+  let z = null;
+  if (keepZoom) { const dz = chart.getOption().dataZoom[0]; z = [dz.startValue, dz.endValue]; }
+  chart.setOption(option(), true);
+  if (z) chart.dispatchAction({type: 'dataZoom', startValue: z[0], endValue: z[1]});
+}
+render(false);
+readout(L);
+
+chart.on('updateAxisPointer', e => { const a = e.axesInfo && e.axesInfo[0]; readout(a ? a.value : L); });
+chart.getZr().on('globalout', () => readout(L));
+chart.on('datazoom', () => { if (hasRS) { chart.setOption({series: [{id: 'rs', data: rebased(curStart())}]}); readout(L); } });
+
+RANGES.forEach(([l, r]) => $('r-' + l).addEventListener('click', () => {
+  range = l; try { localStorage.setItem('fzv-range', l); } catch (e) {}
+  RANGES.forEach(([x]) => $('r-' + x).setAttribute('aria-pressed', x === l));
+  chart.dispatchAction({type: 'dataZoom', startValue: startIdx(r), endValue: L});
+}));
+
+LINES.forEach(([k]) => $('t-' + k).addEventListener('click', ev => {
+  shown[k] = !shown[k]; ev.currentTarget.setAttribute('aria-pressed', shown[k]); render(true);
+}));
+
+window.addEventListener('resize', () => { chart.resize(); });
+const mq = matchMedia('(prefers-color-scheme: dark)');
+(mq.addEventListener ? mq.addEventListener('change', () => render(true)) : mq.addListener(() => render(true)));
+new MutationObserver(() => render(true)).observe(document.documentElement, {attributes: true, attributeFilter: ['data-theme']});
+</script>
