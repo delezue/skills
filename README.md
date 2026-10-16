@@ -36,5 +36,12 @@
 - **技術**：Barchart 有 AWS WAF JavaScript challenge，一般 HTTP 只拿到 202 空頁 → 以 Node + Playwright Chromium headless 讀取渲染後頁面。
 - **範例 (TSM, 10/12/26)**：股價 444.35 (-1.98%)、gamma flip 435.41、put wall 420.00、call wall 450.00
 
+### 4. [`skills/fund-realtime-estimate`](skills/fund-realtime-estimate/)
+- **名稱**：基金即時預估（台股基金盤中漲跌推估）
+- **標的**：台股基金（預設台科、大壩、奔騰、復華、鴻運、台運籌、路伯邁、元大，清單在 `config.json`）
+- **流程**：MoneyDJ 前 10 大持股（名稱+比例）→ TWSE/TPEX 開放資料名稱對代號 → Fugle 即時報價 → Σ(權重 × 漲跌幅) 推估基金漲跌，附覆蓋率、放大值（推估 ÷ 覆蓋率）與加權指數對照，輸出 HTML 報表（台股紅漲綠跌）。
+- **需求**：`pip install requests beautifulsoup4 fugle-marketdata`，Fugle API key 放環境變數 `FUGLE_API_KEY` 或 skill 資料夾的 `fugle_api_key.txt`（已 gitignore）。
+- **範例 (2026-10-16 11:00 盤中)**：加權 +0.68%；奔騰 +0.96%、復華 +0.94%、元大 +0.09%；前 10 大覆蓋率 48.6%～72.2%。
+
 ---
 *Created by [delezue](https://github.com/delezue)*
