@@ -1,0 +1,61 @@
+{
+  "_comment": "funds: [MoneyDJ 基金代碼, 簡稱]。Fugle API key 依序讀：環境變數 FUGLE_API_KEY → skill 資料夾的 fugle_api_key.txt（不上傳 git）→ 這裡的 fugle_api_key。",
+  "fugle_api_key": "",
+  "top_n": 10,
+  "funds": [
+    [
+      "ACDD04",
+      "台科"
+    ],
+    [
+      "ACDD01",
+      "大壩"
+    ],
+    [
+      "ACPS10",
+      "奔騰"
+    ],
+    [
+      "ACFH15",
+      "復華"
+    ],
+    [
+      "AC0001",
+      "鴻運"
+    ],
+    [
+      "ACKH03",
+      "台運籌"
+    ],
+    [
+      "ACNB02",
+      "路伯邁"
+    ],
+    [
+      "ACYT162",
+      "元大"
+    ]
+  ],
+  "_disabled_funds": [
+    [
+      "ACPS02",
+      "黑馬"
+    ],
+    [
+      "ACJS13",
+      "富邦台商"
+    ],
+    [
+      "ACKH19",
+      "高科技"
+    ],
+    [
+      "ACYT11",
+      "元大"
+    ],
+    [
+      "ACCH01",
+      "街口"
+    ]
+  ]
+}
