@@ -52,5 +52,24 @@
 - **需求**：`pip install requests`；本地資料庫 `data/fund_nav.db` 不上傳，第一次執行自動建立（大盤含息指數約 1 分鐘，之後每次數秒）。
 - **範例 (A36004 安聯台灣科技，2026-10-15)**：淨值 781.99（-6.60%）、距今年高點 -11.20%、ZLEMA13 乖離 -6.18%、相對大盤 250 日 +92.4pp、Mansfield RS +8.3%、β60 1.50。
 
+### 6. [`skills/goodinfo-margin-maintenance`](skills/goodinfo-margin-maintenance/)
+- **名稱**：Goodinfo 個股融資維持率與斷頭追繳點位精算終端
+- **標的**：任意台股上市櫃個股（如 `2330`、`2317`、`2454`、`2308`、`2382`）
+- **核心技術**：透過 Playwright Chrome 引擎繞過 Cloudflare 防護自動爬取 `goodinfo.tw/tw/ShowMarginChart.asp` 信用交易日統計（`#tblDetail`），依台灣證交所 60% 融資成數（初始維持率 `166.67%`）精算四大機構級融資成本線與融資維持率模型：
+  1. **WAC 動態存量池法**（每日賣出與現償等比例沖銷，買進按收盤價滾入）
+  2. **FIFO 先進先出周轉池法**（由最新日逆向回溯累加融資買進張數至湊滿當日融資餘額）
+  3. **20D Rolling 近 20 日短線追高批次成本**
+  4. **Anchored AVWAP 區間總買進均價**
+- **輸出**：推算個股 **`140%` 警戒價** 與 **`130%` 法定斷頭價**，並產出通過 `node --check` 驗證之深色機構級三窗格互動式 ECharts HTML 看盤報表。
+
+### 7. [`skills/twse-market-margin-wac`](skills/twse-market-margin-wac/)
+- **名稱**：TWSE 全上市股票 (`CFICode=ESVUFR`) 與 32 大產業別 WAC 融資維持率全景監測終端
+- **標的**：全台灣證券交易所上市普通股（`CFICode = ESVUFR`，共約 1,087 檔、橫跨 32 大產業別）
+- **核心技術**：
+  1. 自動爬取 `isin.twse.com.tw/isin/C_public.jsp?strMode=2` 篩選 `CFICode = ESVUFR`（有價證券代號及名稱、產業別）。
+  2. 批次串接 TWSE 官方全市場信用交易日統計 (`MI_MARGN`) 與每日收盤行情 (`MI_INDEX`)，內建增量日快取引擎（本地 `cache/` 已 gitignore）。
+  3. 套用 `goodinfo-margin-maintenance` 之 **WAC 動態存量池演算法（含除權息/拆股/減資自動因子校正）**，精算全市場 1,087 檔個股之 WAC 融資維持率 (%)、140% 警戒價、130% 斷頭價，以及 **32 大上市產業別之加權 WAC 維持率 (%) 與等權平均維持率 (%)**。
+- **輸出**：深色機構級互動式 ECharts HTML 全景監測報表（含 32 產業橫向排行、60 日產業 vs 全市場維持率趨勢、產業內個股融資市值 × 維持率散佈圖與全市場即時篩選表）。
+
 ---
 *Created by [delezue](https://github.com/delezue)*
