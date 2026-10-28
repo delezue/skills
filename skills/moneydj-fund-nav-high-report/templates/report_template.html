@@ -1,0 +1,319 @@
+<title>{{TITLE}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: fund-desk dashboard. Summary strip -> NAV-vs-high chart with closest/furthest lists -> full sortable table -> method notes */
+:root {
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --ink: #15202b;
+  --muted: #5b6977;
+  --line: #dbe1e7;
+  --accent: #1d4f8a;
+  --accent-soft: #e6eef8;
+  --up: #c0362c;          /* TW convention: red = up */
+  --down: #1d7a4c;        /* green = down */
+  --warn: #a8670f;
+  --deep: #7a2a1f;
+  --track: #e9edf1;
+  --font-body: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", system-ui, sans-serif;
+  --font-num: "IBM Plex Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1319; --surface: #151c24; --ink: #e4e9ee; --muted: #94a2b0; --line: #29333e;
+    --accent: #7eaee8; --accent-soft: #1b2a3c; --up: #ff6f61; --down: #4cc48c; --warn: #e3a64c;
+    --deep: #ff9b8a; --track: #222b35; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1319; --surface: #151c24; --ink: #e4e9ee; --muted: #94a2b0; --line: #29333e;
+  --accent: #7eaee8; --accent-soft: #1b2a3c; --up: #ff6f61; --down: #4cc48c; --warn: #e3a64c;
+  --deep: #ff9b8a; --track: #222b35; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.55; }
+.wrap { max-width: 1320px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 48px; display: grid; gap: 22px; }
+.num, td.n, .kpi b { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+
+header { display: grid; gap: 6px; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; color: var(--muted); }
+.eyebrow a { color: var(--accent); }
+h1 { margin: 0; font-size: clamp(22px, 3vw, 30px); font-weight: 700; letter-spacing: .01em; text-wrap: balance; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--muted); font-size: 13px; }
+
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.kpi { background: var(--surface); padding: 14px 16px; display: grid; gap: 2px; min-width: 0; }
+.kpi span { color: var(--muted); font-size: 12px; letter-spacing: .04em; }
+.kpi b { font-size: 24px; font-weight: 600; }
+.kpi small { color: var(--muted); font-size: 12px; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; min-width: 0; }
+.panel h2 { margin: 0 0 4px; font-size: 16px; font-weight: 700; }
+.panel .sub { margin: 0 0 12px; color: var(--muted); font-size: 12.5px; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 22px; }
+.chart-scroll { overflow-x: auto; }
+.chart svg { width: 100%; min-width: 560px; height: auto; display: block; }
+.chart text { fill: var(--muted); font-family: var(--font-num); font-size: 11px; }
+.chart .axis-title { fill: var(--ink); font-family: var(--font-body); font-size: 12px; }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .zero { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart circle { fill: var(--accent); fill-opacity: .55; stroke: var(--surface); stroke-width: .8; cursor: pointer; }
+.chart circle.hot { fill: var(--up); fill-opacity: .9; }
+.tip { position: fixed; pointer-events: none; background: var(--ink); color: var(--surface); padding: 6px 9px; border-radius: 6px; font-size: 12px; max-width: 280px; }
+
+.lists { display: grid; gap: 16px; align-content: start; }
+.lists h3 { margin: 0 0 6px; font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: .04em; }
+.lists ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.lists li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 5px 0; border-bottom: 1px solid var(--line); }
+.lists li a { color: var(--ink); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lists li a:hover { color: var(--accent); text-decoration: underline; }
+
+.tools { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin-bottom: 12px; }
+.tools input[type=search] { flex: 1 1 220px; min-width: 0; padding: 7px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); font: inherit; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 4px 11px; font: inherit; font-size: 12.5px; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.tools label { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12.5px; cursor: pointer; }
+.count { color: var(--muted); font-size: 12.5px; margin-left: auto; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.table-wrap { overflow: auto; max-height: 78vh; border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 13px; font-family: var(--font-body); }
+th, td { padding: 7px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; text-align: right; }
+th { position: sticky; top: 0; z-index: 2; background: var(--surface); font-weight: 700; font-size: 12px; color: var(--muted); cursor: pointer; user-select: none; }
+th.grp-nav { background: var(--accent-soft); color: var(--ink); }
+th[aria-sort="ascending"]::after { content: " ▲"; color: var(--accent); }
+th[aria-sort="descending"]::after { content: " ▼"; color: var(--accent); }
+th:first-child, td:first-child { position: sticky; left: 0; text-align: left; background: var(--surface); z-index: 1; }
+th:first-child { z-index: 3; }
+td:first-child { max-width: 300px; overflow: hidden; text-overflow: ellipsis; }
+td:first-child a { color: var(--ink); text-decoration: none; }
+td:first-child a:hover { color: var(--accent); text-decoration: underline; }
+td.code { color: var(--muted); font-size: 11.5px; text-align: left; }
+tbody tr:hover td { background: var(--accent-soft); }
+.pos { color: var(--up); }
+.neg { color: var(--down); }
+.na { color: var(--muted); }
+.stale { color: var(--warn); }
+td.gap { min-width: 170px; }
+/* the gap column stays pinned at the right edge, so it is visible without scrolling the wide table */
+th:last-child, td:last-child { position: sticky; right: 0; background: var(--surface); box-shadow: -1px 0 0 var(--line); z-index: 1; }
+th:last-child { z-index: 3; background: var(--accent-soft); }
+tbody tr:hover td:last-child { background: var(--accent-soft); }
+.gapcell { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+.bar { height: 6px; background: var(--track); border-radius: 3px; position: relative; overflow: hidden; }
+.bar i { position: absolute; right: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--muted); }
+.lv0 i { background: var(--up); } .lv1 i { background: var(--accent); } .lv2 i { background: var(--warn); } .lv3 i { background: var(--deep); }
+.lv0 .num { color: var(--up); font-weight: 600; }
+
+.notes { color: var(--muted); font-size: 12.5px; display: grid; gap: 6px; }
+.notes p { margin: 0; max-width: 90ch; }
+.notes code { font-family: var(--font-num); color: var(--ink); }
+
+@media (max-width: 900px) {
+  .grid2 { grid-template-columns: minmax(0, 1fr); }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">MoneyDJ 基金 · <a id="src" href="#" target="_blank" rel="noopener">資料來源</a></div>
+    <h1 id="title"></h1>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <section class="kpis" aria-label="摘要" id="kpis"></section>
+
+  <section class="grid2">
+    <div class="panel chart">
+      <h2>距一年高點 × 一年報酬</h2>
+      <p class="sub">每一點是一檔基金。越靠右越接近一年最高淨值；紅點為距年高 1% 以內。滑過可看名稱，點擊開啟 MoneyDJ 基金頁。下方「隱藏槓桿／反向型」也會套用到這張圖和右側清單。</p>
+      <div id="chart" class="chart-scroll"></div>
+    </div>
+    <div class="panel lists">
+      <div><h3>最接近一年高點</h3><ol id="closest"></ol></div>
+      <div><h3>距一年高點最遠</h3><ol id="furthest"></ol></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>基金比較表</h2>
+    <p class="sub">報酬（%）來自分類頁；淨值三欄來自各基金頁。點欄位名稱排序，再點一次反向。</p>
+    <div class="tools">
+      <input type="search" id="q" placeholder="搜尋基金名稱或代碼" aria-label="搜尋基金名稱或代碼">
+      <div class="chips" role="group" aria-label="距年高篩選">
+        <button class="chip" id="f-all" data-f="all" aria-pressed="true">全部</button>
+        <button class="chip" id="f-near" data-f="near" aria-pressed="false">距年高 1% 內</button>
+        <button class="chip" id="f-mid" data-f="mid" aria-pressed="false">-1% ~ -10%</button>
+        <button class="chip" id="f-far" data-f="far" aria-pressed="false">低於 -10%</button>
+      </div>
+      <label><input type="checkbox" id="noLev"> 隱藏槓桿／反向型</label>
+      <span class="count" id="count"></span>
+    </div>
+    <div class="table-wrap">
+      <table id="tbl">
+        <thead><tr id="thead"></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="notes">
+    <p><b>最新淨值與最高淨值差距 %</b>（圖與清單中簡稱「距年高」）＝（最新淨值 ÷ 最高淨值(年) − 1）× 100。0 代表正在一年高點；−8 代表比一年最高淨值低 8%。這一欄固定在比較表最右側。</p>
+    <p>報酬欄位（一日至三年）與年化標準差為 MoneyDJ 分類頁數值；「--」代表成立時間不足或無資料，排序時一律排在最後，不當作 0。</p>
+    <p>淨值日期以橘色標示時，代表該基金淨值日期和分類頁的報酬日期不同（例如海外基金晚一天公布）。</p>
+    <p id="genline"></p>
+  </section>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+const DATA = {{DATA_JSON}};
+const S = DATA.summary, ROWS = DATA.rows;
+const LEV = /正2|反1|正向|反向|槓桿|2倍|單日/;
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pct = (v, d = 2) => v == null ? '<span class="na">--</span>' :
+  `<span class="${v > 0 ? "pos" : v < 0 ? "neg" : ""}">${v > 0 ? "+" : ""}${v.toFixed(d)}</span>`;
+const fix = (v, d) => v == null ? '<span class="na">--</span>' : v.toFixed(d);
+const lvl = g => g >= -1 ? 0 : g >= -5 ? 1 : g >= -10 ? 2 : 3;
+
+/* header */
+const region = S.region || ("類別 " + S.category);
+$("title").textContent = region + "基金：淨值距一年高點比較";
+$("src").href = DATA.source;
+$("meta").innerHTML = [
+  `報酬日期 <span class="num">${esc(S.latest_date)}</span>`,
+  `共 <span class="num">${S.n_funds}</span> 檔，取得淨值 <span class="num">${S.n_with_nav}</span> 檔` + (S.n_failed ? `（<span class="stale">${S.n_failed} 檔讀取失敗</span>）` : ""),
+  `產生時間 <span class="num">${esc(S.generated)}</span>`
+].map(x => `<span>${x}</span>`).join("");
+$("genline").textContent = `MoneyDJ 分類 C=${S.category}。資料僅供參考，不構成投資建議。`;
+
+/* KPIs */
+const med = S.median_gap_high;
+$("kpis").innerHTML = [
+  ["基金數", S.n_with_nav, `分類共 ${S.n_funds} 檔`],
+  ["距年高中位數", med == null ? "--" : med.toFixed(2) + "%", "一半基金比這更接近高點"],
+  ["距年高 1% 以內", S.n_near_high, `佔 ${S.n_with_nav ? (S.n_near_high / S.n_with_nav * 100).toFixed(0) : 0}%`],
+  ["低於年高 10% 以上", S.n_below_10, `佔 ${S.n_with_nav ? (S.n_below_10 / S.n_with_nav * 100).toFixed(0) : 0}%`]
+].map(([k, v, s]) => `<div class="kpi"><span>${k}</span><b>${v}</b><small>${s}</small></div>`).join("");
+
+/* closest / furthest lists */
+const li = r => `<li><a href="${esc(r.url)}" target="_blank" rel="noopener" title="${esc(r.name)}">${esc(r.name)}</a><span class="num ${r.gap_high < 0 ? "neg" : "pos"}">${r.gap_high.toFixed(2)}%</span></li>`;
+const withGap = ROWS.filter(r => r.gap_high != null);
+const overviewRows = () => $("noLev").checked ? withGap.filter(r => !LEV.test(r.name)) : withGap;
+function drawLists() {
+  const byGap = overviewRows().slice().sort((a, b) => b.gap_high - a.gap_high);
+  $("closest").innerHTML = byGap.slice(0, 5).map(li).join("");
+  $("furthest").innerHTML = byGap.slice(-5).reverse().map(li).join("");
+}
+
+/* scatter: x = gap to 1y high (%), y = 1y return (%) */
+function niceStep(span, target) {
+  const raw = span / target, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p;
+  return (m >= 5 ? 10 : m >= 2 ? 5 : m >= 1 ? 2 : 1) * p;
+}
+function drawChart() {
+  const pts = overviewRows().filter(r => r.y1 != null);
+  const W = 720, H = 380, L = 58, R = 18, T = 14, B = 46;
+  if (!pts.length) { $("chart").innerHTML = '<p class="sub">沒有同時具備淨值與一年報酬的基金。</p>'; return; }
+  let x0 = Math.min(...pts.map(p => p.gap_high)), x1 = 0;
+  let y0 = Math.min(0, ...pts.map(p => p.y1)), y1 = Math.max(0, ...pts.map(p => p.y1));
+  const xs = niceStep(x1 - x0 || 1, 6), ys = niceStep(y1 - y0 || 1, 6);
+  x0 = Math.floor(x0 / xs) * xs; y0 = Math.floor(y0 / ys) * ys; y1 = Math.ceil(y1 / ys) * ys;
+  const X = v => L + (v - x0) / (x1 - x0) * (W - L - R), Y = v => T + (y1 - v) / (y1 - y0) * (H - T - B);
+  let g = "";
+  for (let v = x0; v <= x1 + 1e-9; v += xs) g += `<line class="grid" x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H - B}"/><text x="${X(v)}" y="${H - B + 16}" text-anchor="middle">${+v.toFixed(6)}%</text>`;
+  for (let v = y0; v <= y1 + 1e-9; v += ys) g += `<line class="${Math.abs(v) < 1e-9 ? "zero" : "grid"}" x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${L - 8}" y="${Y(v) + 4}" text-anchor="end">${+v.toFixed(6)}%</text>`;
+  g += `<text class="axis-title" x="${(L + W - R) / 2}" y="${H - 8}" text-anchor="middle">距一年最高淨值（%）→ 越右越接近高點</text>`;
+  g += `<text class="axis-title" transform="translate(14 ${(T + H - B) / 2}) rotate(-90)" text-anchor="middle">一年報酬（%）</text>`;
+  const dots = pts.map(p => `<a href="${esc(p.url)}" target="_blank" rel="noopener"><circle data-i="${ROWS.indexOf(p)}" class="${p.gap_high >= -1 ? "hot" : ""}" cx="${X(p.gap_high).toFixed(1)}" cy="${Y(p.y1).toFixed(1)}" r="4"/></a>`).join("");
+  $("chart").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="距一年高點與一年報酬散佈圖">${g}${dots}</svg>`;
+}
+const tip = $("tip");
+$("chart").addEventListener("mousemove", e => {
+  const c = e.target.closest("circle");
+  if (!c) { tip.hidden = true; return; }
+  const r = ROWS[+c.dataset.i];
+  tip.innerHTML = `${esc(r.name)}<br>距年高 ${r.gap_high.toFixed(2)}%　一年 ${r.y1.toFixed(2)}%`;
+  tip.hidden = false;
+  tip.style.left = Math.min(e.clientX + 12, innerWidth - 290) + "px";
+  tip.style.top = (e.clientY + 12) + "px";
+});
+$("chart").addEventListener("mouseleave", () => { tip.hidden = true; });
+drawLists();
+drawChart();
+
+/* table */
+const COLS = [
+  { k: "name", t: "名稱", s: "str" },
+  { k: "code", t: "代碼", s: "str" },
+  { k: "date", t: "日期", s: "str" },
+  ...DATA.periods.map(([k, t]) => ({ k, t: t + (k === "std" ? "" : "%"), s: "num" })),
+  { k: "nav_date", t: "淨值日期", s: "str", nav: 1 },
+  { k: "nav", t: "最新淨值", s: "num", nav: 1 },
+  { k: "nav_high", t: "最高淨值(年)", s: "num", nav: 1 },
+  { k: "gap_high", t: "最新淨值與最高淨值差距 %", s: "num", nav: 1 }
+];
+let sortKey = "gap_high", sortDir = -1, filt = "all";
+$("thead").innerHTML = COLS.map((c, i) => `<th data-k="${c.k}" class="${c.nav ? "grp-nav" : ""}" scope="col" tabindex="0">${c.t}</th>`).join("");
+const minGap = Math.min(-1, ...withGap.map(r => r.gap_high));
+function cell(r, c) {
+  const v = r[c.k];
+  if (c.k === "name") return `<td title="${esc(r.name)}"><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.name)}</a></td>`;
+  if (c.k === "code") return `<td class="code num">${esc(v)}</td>`;
+  if (c.k === "date") return `<td class="n">${esc(v)}</td>`;
+  if (c.k === "nav_date") return `<td class="n ${v && r.date && v !== r.date ? "stale" : ""}">${v ? esc(v) : '<span class="na">--</span>'}</td>`;
+  if (c.k === "nav" || c.k === "nav_high") return `<td class="n">${fix(v, 4)}</td>`;
+  if (c.k === "std") return `<td class="n">${fix(v, 2)}</td>`;
+  if (c.k === "gap_high") {
+    if (v == null) return `<td class="n gap"><span class="na">--</span></td>`;
+    const w = Math.max(2, Math.min(100, v / minGap * 100));
+    return `<td class="n gap"><div class="gapcell lv${lvl(v)}"><div class="bar"><i style="width:${w.toFixed(1)}%"></i></div><span class="num">${v.toFixed(2)}%</span></div></td>`;
+  }
+  return `<td class="n">${pct(v)}</td>`;
+}
+function render() {
+  const q = $("q").value.trim().toLowerCase(), noLev = $("noLev").checked;
+  let rows = ROWS.filter(r => {
+    if (q && !(r.name.toLowerCase().includes(q) || r.code.toLowerCase().includes(q))) return false;
+    if (noLev && LEV.test(r.name)) return false;
+    const g = r.gap_high;
+    if (filt === "near") return g != null && g >= -1;
+    if (filt === "mid") return g != null && g < -1 && g >= -10;
+    if (filt === "far") return g != null && g < -10;
+    return true;
+  });
+  const col = COLS.find(c => c.k === sortKey);
+  rows.sort((a, b) => {
+    const x = a[sortKey], y = b[sortKey];
+    if (x == null && y == null) return 0;
+    if (x == null) return 1;
+    if (y == null) return -1;           /* missing always last */
+    return col.s === "str" ? sortDir * String(x).localeCompare(String(y), "zh-Hant") : sortDir * (x - y);
+  });
+  $("tbody").innerHTML = rows.map(r => `<tr>${COLS.map(c => cell(r, c)).join("")}</tr>`).join("");
+  $("count").textContent = `顯示 ${rows.length} / ${ROWS.length} 檔`;
+  document.querySelectorAll("#thead th").forEach(th =>
+    th.setAttribute("aria-sort", th.dataset.k === sortKey ? (sortDir > 0 ? "ascending" : "descending") : "none"));
+}
+function sortBy(k) {
+  if (sortKey === k) sortDir = -sortDir;
+  else { sortKey = k; sortDir = COLS.find(c => c.k === k).s === "str" ? 1 : -1; }
+  render();
+}
+$("thead").addEventListener("click", e => { const th = e.target.closest("th"); if (th) sortBy(th.dataset.k); });
+$("thead").addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { const th = e.target.closest("th"); if (th) { e.preventDefault(); sortBy(th.dataset.k); } } });
+$("q").addEventListener("input", render);
+$("noLev").addEventListener("change", () => { drawLists(); drawChart(); render(); });
+document.querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => {
+  filt = b.dataset.f;
+  document.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  render();
+}));
+render();
+</script>

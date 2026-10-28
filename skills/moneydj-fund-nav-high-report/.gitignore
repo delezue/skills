@@ -1,0 +1,6 @@
+﻿python_path.txt
+detail_cache_*.json
+cache/
+__pycache__/
+*.pyc
+.DS_Store
