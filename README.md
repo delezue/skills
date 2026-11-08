@@ -80,5 +80,22 @@
   3. 精算「最新淨值距一年最高淨值的差距 %」：`(最新淨值 ÷ 最高淨值(年) − 1) × 100`。
 - **輸出**：單檔自含互動式 HTML 報表（散佈圖、篩選器、凍結差距欄位）與 Excel 可直接開之 `funds.csv` 及 `summary.json`。
 
+### 9. [`skills/quant-leveraged-etf-00631l`](skills/quant-leveraged-etf-00631l/)
+- **名稱**：台股槓桿 ETF (`00631L` / `00675L`) 隨機微積分波動耗損、雙倍逆價差紅利與夏農惡魔 50:50 再平衡終端
+- **標的**：00631L (元大台灣50正2) / 00675L (富邦臺灣加權正2) / 0050 / 台指期
+- **核心技術**：連續時間伊藤引理 (Itô's Lemma) 幾何成長率方程式、8% 隱含配息灌入淨值、50:50 再平衡閾值觸發引擎與 DSP/ML 動態曝險濾波。
+- **輸出**：深色機構級互動式 ECharts HTML 終端報告。
+
+### 10. [`skills/quant-us-sector-flow-terminal`](skills/quant-us-sector-flow-terminal/)
+- **名稱**：美股 40+ 核心標的群 × 11 大 GICS 板塊輪動與「死貓反彈 vs 趨勢反轉」華爾街量化看盤終端
+- **標的**：40+ 檔美股核心資產（算力晶片 TSM/NVDA/AMD/AVGO、雲端巨頭 AMZN/MSFT/META、太空車 TSLA/SPCX、資料中心 ORCL/APLD/CRWV、記憶體 MU/STX/WDC、光模組 AAOI/LITE/COHR、ETF 與宏觀避險 XLU/RSP/SGOV/SOXL 等）
+- **核心技術**：
+  1. **宏觀跨資產避險天平 (Macro Ratio)**：測算避險流入 vs 科技/週期出逃比例，精準判定去槓桿 (De-grossing) 狀態。
+  2. **等權 RSP 去中心化 vs SPY 權值失真**：解構 Mag 7 集中度拋售與離散度交易 (Dispersion Trading)。
+  3. **死貓反彈微結構診斷**：量縮急縮比率 ($\Delta V\% < -35\%$)、四級訂單拆解 (特大/大單趁彈倒貨) 與散戶參與率 ($RPR > 60\%$)。
+  4. **做市商 Delta 動態對沖軋空陷阱 (SOXL vs SOXX)**：解構 3X 槓桿爆買迫使做市商買入 1X 指數對沖之假反彈機制與波動率耗損。
+  5. **二次探底 (Secondary Retest) 操盤劇本**：60% 高現金防禦配置與右側反轉驗證條件。
+- **輸出**：支援 10 大板塊群組一鍵切換過濾、四級微結構堆疊圖、資金瀑布圖與即時排列表格之深色機構級互動式 ECharts HTML 看盤軟體（通過 `node --check` 驗證）。
+
 ---
 *Created by [delezue](https://github.com/delezue)*
